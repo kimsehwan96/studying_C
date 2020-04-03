@@ -14,7 +14,6 @@ int printstack(void);
 int main(void) {
 	int inval, innum;
 	printf(" - Algorithm Stack - \n");
-	printf("Made by POM(lovebeen04@gmail.com)\n");
 	printf("=================================\n");
 	printf("1. Push Value\n");
 	printf("2. Pop Value\n");
