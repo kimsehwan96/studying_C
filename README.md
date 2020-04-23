@@ -18,3 +18,6 @@
 ` command (명령어) : gcc `
 
 ` gcc ${file} foo bar ....` 
+
+
+gcc 와 clang의 차이?
