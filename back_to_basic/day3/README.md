@@ -75,7 +75,6 @@ int main(void) {
 while (조건) {
     // 반복적으로 실행할 부분
 }
-```
 
 ```c
 int main(void) {
@@ -91,3 +90,37 @@ int main(void) {
 
 *특정 문자 N번 출력하기*
 
+```c
+#include <stdio.h>
+
+int main(void) {
+    for (int i=2; i<=9; i++){
+        printf("-----------\n");
+        for (int v=1; v<=9; v++){
+            printf("%d x %d = %d\n", i, v, i*v);
+        }
+    }
+    return 0;
+}
+```
+*구구단*
+
+```c
+#include <stdio.h>
+
+int main(void) {
+    int i = 1;
+    while (i<=9){
+        int j = 1;
+        while(j<=9){
+            printf("%d x %d = %d\n", i, j, i * j);
+            j++;
+        }
+        i++;
+    }
+    return 0;
+}
+```
+
+- 똑같이 구현
+    - 나는 하다가 생각없이 i++, j++를 안 넣어줘서 무한루프에 빠졌었음

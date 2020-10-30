@@ -67,3 +67,64 @@ int main(void) {
 - 조건의 개수가 적을 땐 if문
 - 조건의 개수가 많으면 case 문을 쓰는것이 편하다고 한다.
 
+
+
+
+```c
+int main(void) {
+    printf("학점을 입력하세요");
+    char a;
+    scanf("%c", &a);
+    switch (a) {
+        case 'A':
+            printf("A 학점\n");
+        case 'B':
+            printf("B 학점\n");
+        case 'C':
+            printf("C 학점 \n");
+        default:
+            printf("학점을 바르게 입력하세요 \n");
+    }
+    return 0;
+}
+```
+
+- 입력받은 학점에 따라 분기해서 출력하는 코드
+    - B를 입력하먄 B, C 가 출력이 되는데
+    - 조건에 맞는 부분 부터 밑으로 쭉 실행되나봄
+    - 그래서 필요한게 `break`
+
+```c
+
+#include <stdio.h>
+typedef unsigned char bool;
+#define True 1
+#define False 0
+
+int main(void) {
+    printf("월을 입력하세요");
+    int a;
+    scanf("%d", &a);
+    switch (a) {
+        case 1:
+        case 2:
+        case 3:
+            printf("봄 \n");
+            break;
+        case 4:
+        case 5:
+        case 6:
+            printf("여름\n");
+            break;
+        case 7:
+        case 8:
+        case 9:
+            printf("가을\n"); break;
+        case 10:
+        case 11:
+        case 12:
+            printf("겨울\n"); break;
+    }
+    return 0;
+}
+```
