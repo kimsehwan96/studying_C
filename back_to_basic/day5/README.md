@@ -114,5 +114,143 @@ int main(void) {
     - int fflush(FILE *_STREAM);
     - 성공하면 0, 실패하면 EOF(-1) 반환
 
-fflush는 윈도우서만 동작 리눅스 동작 x(macos 동일..)
+fflush는 윈도우서(window visual studio),
+리눅스나 macos는 안되는데, 리눅스 & macos는 gcc 컴파일러로 컴파일 하는데,, 이 컴파일러에서 해당 함수 지원을 안해준다고 하는 듯   
+-> visual studio는 fflush를 확장해서 사용하는 것이라고 함.
 
+
+### 문자열
+
+#### 문자열과 포인터
+1. 문자열 형태로 포인터를 사용하면, 포인터에 특정한 문자열의 주소를 넣게 됨.
+
+```c
+#include <stdio.h>
+
+int main(void) {
+    char *a = "Hello world";
+    int c = 5;
+    int *p;
+    p = &c;
+    printf("%s\n", a);
+    printf("%p\n", a); //문자열 포인터에 담긴 변수(Hello wolrd)가 메모리 어떤 번지에서 부터 저장되는지
+    printf("%p\n", &a); //포인터 변수의 저장 위치.
+    printf("-------------\n");
+    
+    printf("%p\n", &c); // 정수형 변수의 메모리 위치
+    printf("%p\n", &p); // 정수형 포인터의 메모리 위치
+    return 0;
+}
+```
+
+```console
+Hello world
+0x100003f8e
+0x7ffeefbff4b0
+-------------
+0x7ffeefbff4ac
+0x7ffeefbff4a0
+```
+
+* 개인적으로 궁금한 점
+    - Hello world 라는 문자열 배열은 0x100000~~~ 이라는 위치에 저장되었는데
+    - 포인터 변수, 정수형 변수등은 서로 비슷한 메모리 주소에 저장 되었다.
+    - 배열은 일반적인 변수와 다른 영역(스택 /힙이라고 하는 것들)에 저장되는 것?
+
+- 테스트 해보기.
+```c
+#include <stdio.h>
+
+int main(void) {
+    char *a = "Hello world";
+    int intArray[] = {1,2,3,4,5,6,7};
+    int c = 5;
+    int *p;
+    p = &c;
+    printf("%s\n", a);
+    printf("%p\n", a); //문자열 포인터에 담긴 변수(Hello wolrd)가 메모리 어떤 번지에서 부터 저장되는지
+    printf("%p\n", &a); //포인터 변수의 저장 위치.
+    printf("-------------\n");
+    
+    printf("%p\n", &c); // 정수형 변수의 메모리 위치
+    printf("%p\n", &p); // 정수형 포인터의 메모리 위치
+    printf("%p\n", intArray); // 배열 형태의 정수형 데이터들의 저장된 메모리 시작 위치
+    return 0;
+}
+```
+
+```console
+Hello world
+0x100003f64
+0x7ffeefbff480
+-------------
+0x7ffeefbff47c
+0x7ffeefbff470
+0x7ffeefbff490
+```
+ 
+????
+
+```c
+#include <stdio.h>
+
+int main(void) {
+    char *a = "Hello world";
+    int intArray[] = {1,2,3,4,5,6,7};
+    char charArray[] = "hello";
+    int c = 5;
+    int *p;
+    p = &c;
+    printf("%s\n", a);
+    printf("%p\n", a); //문자열 포인터에 담긴 변수(Hello wolrd)가 메모리 어떤 번지에서 부터 저장되는지
+    printf("%p\n", &a); //포인터 변수의 저장 위치.
+    printf("-------------\n");
+    
+    printf("%p\n", &c); // 정수형 변수의 메모리 위치
+    printf("%p\n", &p); // 정수형 포인터의 메모리 위치
+    printf("%p\n", intArray); // 배열 형태의 정수형 데이터들의 저장된 메모리 시작 위치
+    printf("%s\n", charArray); //charArray에 담긴 문자열 출력
+    printf("%p\n", &charArray); //charArray 문자형데이터들 배열의 시작 주소
+    return 0;
+}
+```
+
+
+```console
+Hello world
+0x100003f58
+0x7ffeefbff480
+-------------
+0x7ffeefbff474
+0x7ffeefbff468
+0x7ffeefbff490
+hello
+0x7ffeefbff47a
+```
+???????????????? 대체 `char *a = "Hello world";` 저 문자열 배열은 다른 변수와 상당히 많이 다른 위치에 저장되는 이유가 무엇일까
+
+이유 : 저 문자열을 읽기 전용으로 메모리 공간에 넣은뒤 그 위치를 처리  
+이러한 문자열을 문자열 리터럴이라고 이야기 하며, 컴파일러가 알아서 메모리 주소를 결정.
+
+- 검색 결과 이러한 상수, 리터럴은 메모리의 5가지 종류 영역(텍스트, 데이터, bss, 힙, 스택)중에서 텍스트 영역에 저장된다구 한다 !!
+- 읽기 전용 영역
+
+` char charArray[] = "hello";` 와 같은 경우는 수정이 가능하고, stack 영역에 저장된다. 
+- 그니까 저 위에 주소 비슷한 놈들 다 스택 영역에 저장된거다.
+* 실제 `const int test = 5;`로 상수 하나 만들고 찍어봤는데 스택 영역에 저장
+    - 확인해보니, 실제로 문자열 리터럴 말고 다른 상수들은 stack영역에 저장된다고 이야기 한다.
+        - 다만 컴파일러에서는 이 값을 변환시키려고 할 때 오류를 내보낸다고 함(바뀌면 안되니까.)
+
+* scanf() 함수는 공백을 만날 때 까지 입력을 받지만, gets()함수는 공백까지 포함하여 한 줄을 입력 받는다.
+
+```c
+#include <stdio.h>
+
+int main(void) {
+    char a[100];
+    gets(a); //배열상의 크기를 고려하지 않고 받기 때문에 unsafe하다.
+    printf("%s\n", a);
+    return 0;
+}
+
+```
