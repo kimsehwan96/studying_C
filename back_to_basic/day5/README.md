@@ -254,3 +254,181 @@ int main(void) {
 }
 
 ```
+
+<strong> 더 안전한 버전 </strong>
+
+```c
+#include <stdio.h>
+
+int main(void) {
+    char a[100];
+    gets_s(a, sizeof(a)); // a의 사이즈 만큼 입력을 받겠다 100개만 입력 받겠다!
+    printf("%s", a);
+    return 0;
+}
+
+```
+
+## 문자열 처리를 위한 다양한 함수
+
+- `strlen()` : 문자열의 길이를 반환
+- `strcmp()` : 문자열 1이 문자열 2보다 사전적으로 앞에있으먼 -1, 뒤에있으면 1을 반환
+- `strcpy()` : 문자열을 복사한다.
+- `strcat()` : 문자열 1에 문자열 2를 더한다 
+- `strstr()` : 문자열 1에 문자열 2가 어떻게 포함디어있는지를 반환한다.
+
+- strlen() 예제
+```c
+#include <stdio.h>
+#include <string.h>
+
+int main(void) {
+    char *a = "Kim se hwan";
+    printf("문자열 길이 : %lu\n", strlen(a));
+    return 0;
+}
+```
+
+- 생각을 해보면... a라는 일종의 배열은 첫 주소부터 저장된 문자열들 + 1 (마지막 null 때문에) 만큼의 메모리에 저장되는거고.
+- a[인덱스]로 접근하면 한글자 한글자씩도 출력이 가능하지 !
+
+
+```c
+#include <stdio.h>
+#include <string.h>
+
+int main(void) {
+    char *a = "Kim se hwan";
+    //printf("문자열 길이 : %lu\n", strlen(a));
+    for(int i = 0; i <= strlen(a); i++) {
+        printf("%c\n", a[i]);
+        printf("%p\n", &a[i]);
+    }
+    return 0;
+}
+
+```
+
+```console
+K
+0x100003fa0
+i
+0x100003fa1
+m
+0x100003fa2
+ 
+0x100003fa3
+s
+0x100003fa4
+e
+0x100003fa5
+ 
+0x100003fa6
+h
+0x100003fa7
+w
+0x100003fa8
+a
+0x100003fa9
+n
+0x100003faa
+ 
+0x100003fab
+Program ended with exit code: 0
+```
+
+- for loop를 이용해서 각 배열의 인덱스로 접근해서 메모리 주소 찍어보고, 값도 찍은 결과물이다.
+
+<strong> 문자열 리터럴은 바꾸지 못해도, 문자열 변수(배열)에 저장된 값은 바꿀 수 있다 !</strong>
+
+```c
+#include <stdio.h>
+#include <string.h>
+
+int main(void) {
+    char *a = "Kim se hwan";
+    printf("%s\n", a);
+    printf("change string !\n");
+    a = "Hello world";
+    printf("%s\n", a);
+    return 0;
+}
+```
+
+```console
+Kim se hwan
+change string !
+Hello world
+Program ended with exit code: 0
+```
+
+- 여기서 a라는건 배열의 첫번째 주소를 의미한다!!!!!
+
+
+
+### 문자열 처리 함수 실습
+
+```c
+#include <stdio.h>
+#include <string.h>
+
+int main(void) {
+    char *a = "Kim se hwan";
+    printf("%lu\n", strlen(a)); // strlen(a)는 반환이 unsigned long.
+    return 0;
+}
+
+```
+
+
+```c
+#include <stdio.h>
+#include <string.h>
+
+int main(void) {
+    char *a = "Dd";
+    char *b = "Cb";
+    printf("%d\n", strcmp(a, b));
+    return 0;
+}
+
+```
+
+<strong> strcmp는 비교 대상 문자(a에 있는 문자열 중 첫번째)가(ASCII) 비교하려는 문자보다 사전 적으로 얼마나 큰지 리턴 <strong>
+- 예를들어 A와 B를 비교하면 1, B와 A를 비교하면 -1, A와 C를 비교하면 3이 나온다.
+
+
+```c
+#include <stdio.h>
+#include <string.h>
+
+int main(void) {
+    char a[30] = "My name is ";
+    char b[20] = "Kim se hwan\n";
+    strcat(a, b);
+    printf("%s",a);
+    
+    return 0;
+}
+
+```
+
+- 문자열을 합치는 함수 strcat()이고, 리턴이 없는 프로시져다.
+    - 앞의 문자열의 배열이 널널해야 오류가 안나네!!
+
+```c
+#include <stdio.h>
+#include <string.h>
+
+int main(void) {
+    char a[20] = "I love you";
+    char b[20] = "love";
+    printf("%s",strstr(a, b));
+    
+    return 0;
+}
+```
+
+- strstr(긴 문자열,짧은 문자열) 의 경우, 반환이 긴 문자열에서 매치되는 짧은 문자열의 시작 <strong>주소</string>를 리턴한다.
+    - 즉 단순 출력하기만 하면 뒤에 문자열까지 모두 출력이 된다는 의미다.
+    
