@@ -127,19 +127,19 @@ int main(void)
             printf("===========================\n");
             if (authenticate(id, pw) == USER1_LOGIN)
             {
-                printf("USER1 Login Success \n");
+                printf("%s Login Success \n", id);
                 send(new_fd, "Login Success User1 ! \n", 512, 0);
                 close(new_fd);
             }
             else if (authenticate(id, pw) == USER2_LOGIN)
             {
-                printf("USER2 Login Success\n");
+                printf("%s Login Success\n", id);
                 send(new_fd, "Login Success User2 ! \n", 512, 0);
                 close(new_fd);
             }
             else
             {
-                printf("there is no such that user %s\n", id);
+                printf("there is no such that infotmation id : %s pw : %s\n", id, pw);
                 send(new_fd, "Login Fail \n", 512, 0);
                 close(new_fd);
             }
