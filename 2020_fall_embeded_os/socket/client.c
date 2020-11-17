@@ -7,8 +7,8 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#define SERV_IP "127.0.0.1"
-#define SERV_PORT 4000
+#define SERV_IP "220.149.128.100"
+#define SERV_PORT 4140
 
 int main(int argc, char *argv[])
 {
