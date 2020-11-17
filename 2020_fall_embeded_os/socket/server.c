@@ -49,6 +49,40 @@ int authenticate(char *id, char *pw)
         return LOGIN_FAIL;
 }
 
+/*
+TODO: Server concurrency 추가 필요
+- > fork()를 이용해 프로세스 안에서 프로세스 분리.
+
+
+	while(1){
+		newSocket = accept(sockfd, (struct sockaddr*)&newAddr, &addr_size);
+		if(newSocket < 0){
+			exit(1);
+		}
+		printf("Connection accepted from %s:%d\n", inet_ntoa(newAddr.sin_addr), ntohs(newAddr.sin_port));
+
+		if((childpid = fork()) == 0){
+			close(sockfd);
+
+			while(1){
+				recv(newSocket, buffer, 1024, 0);
+				if(strcmp(buffer, ":exit") == 0){
+					printf("Disconnected from %s:%d\n", inet_ntoa(newAddr.sin_addr), ntohs(newAddr.sin_port));
+					break;
+				}else{
+					printf("Client: %s\n", buffer);
+					send(newSocket, buffer, strlen(buffer), 0);
+					bzero(buffer, sizeof(buffer));
+				}
+			}
+		}
+
+	}
+
+	close(newSocket);
+
+*/
+
 int main(void)
 {
     int sockfd, new_fd;
@@ -119,10 +153,11 @@ int main(void)
 
     sin_size = sizeof(struct sockaddr_in);
 
+    // main loop. never close before got interupt.
     for (;;)
     {
         new_fd = accept(sockfd, (struct sockaddr *)&their_addr, &sin_size);
-        if (new_fd != -1)
+        if (new_fd != -1)//if file descriptor value is -1 then error occured.
         {
             printf("auccept() is ok\n");
             send(new_fd, ID_REQ, strlen(ID_REQ) + 1, 0);
