@@ -29,12 +29,20 @@ int authenticate(char *id, char *pw)
         {
             return USER1_LOGIN;
         }
+        else 
+        {
+            return LOGIN_FAIL; 
+        }
     }
     else if (strcmp(id, USER2_ID) == 0)
     {
         if (strcmp(pw, USER2_PW) == 0)
         {
             return USER2_LOGIN;
+        }
+        else 
+        {
+            return LOGIN_FAIL;
         }
     }
     else
@@ -144,7 +152,8 @@ int main(void)
                 close(new_fd);
             }
         }
-        else {
+        else
+        {
             printf("accept fail !");
             exit(0);
         }
