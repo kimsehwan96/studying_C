@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #define MSG_SIZE 80
 #define PIPENAME "./named_pipe_file"
@@ -19,12 +20,14 @@ int main(void) {
   }
 
   /* Data를 보낸다. */
-  for (i = 0; i < 3; i++) {
+  for (i = 0; i < 100000; i++) {
     snprintf(msg, sizeof(msg), "Send Message[%i]", i);
     if ((nread = write(fd, msg, sizeof(msg))) < 0 ) {
       printf("fail to call write()\n");
       return 0;
     }
   }
+  snprintf(msg, sizeof(msg), "exit"); //signal for server that above logic is done.
+  write(fd, msg, sizeof(msg));
   return 0;
 }
