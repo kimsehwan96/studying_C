@@ -5,7 +5,6 @@
 #include <stdlib.h>
 #include <time.h>
 #include <string.h>
-#include "benchmarks.h"
 
 
 #define MSG_SIZE 80
@@ -34,13 +33,17 @@ int main(void) {
     return 0;
   }
   
+  /* 시작한 시간의 CPU클럭과, 종료되었을 때의 CPU클럭을 비교해 시간 계산*/
+  //단! 멀티스레드? 멀티프로세스를 쓰는 경우 정확한 프로세스 실행 시간이 안찍히니까
+  // 다른 방법을 더 찾아봐야한다
   startTime = (float)clock()/CLOCKS_PER_SEC; //start to benchmark
   while (1) {
     if ((nread = read(fd, msg, sizeof(msg))) < 0 ) {
       printf("fail to call read()\n");
       return 0;
     }
-    //printf("recv: %s\n", msg);
+    //printf("recv: %s\n", msg); 1000만개 데이터를 받을때 출력시간때문에 
+    // 실제 수행된 시간인 benchmark 시간보다 늦게 프로세스가 종료됨
     if (strcmp(msg, "exit") == 0) {
         endTime = (float)clock()/CLOCKS_PER_SEC;
         benchmark = endTime - startTime;

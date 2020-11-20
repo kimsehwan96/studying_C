@@ -20,6 +20,7 @@ int main(void) {
   }
 
   /* Data를 보낸다. */
+  /* 1000만개의 데이터를 보냄. */
   for (i = 0; i < 10000000; i++) {
     snprintf(msg, sizeof(msg), "Send Message[%i]", i);
     if ((nread = write(fd, msg, sizeof(msg))) < 0 ) {
