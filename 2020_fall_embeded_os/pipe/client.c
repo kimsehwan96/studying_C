@@ -20,7 +20,7 @@ int main(void) {
   }
 
   /* Data를 보낸다. */
-  for (i = 0; i < 100000; i++) {
+  for (i = 0; i < 10000000; i++) {
     snprintf(msg, sizeof(msg), "Send Message[%i]", i);
     if ((nread = write(fd, msg, sizeof(msg))) < 0 ) {
       printf("fail to call write()\n");

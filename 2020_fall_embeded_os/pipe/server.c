@@ -40,7 +40,7 @@ int main(void) {
       printf("fail to call read()\n");
       return 0;
     }
-    printf("recv: %s\n", msg);
+    //printf("recv: %s\n", msg);
     if (strcmp(msg, "exit") == 0) {
         endTime = (float)clock()/CLOCKS_PER_SEC;
         benchmark = endTime - startTime;
