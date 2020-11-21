@@ -29,9 +29,9 @@ int authenticate(char *id, char *pw)
         {
             return USER1_LOGIN;
         }
-        else 
+        else
         {
-            return LOGIN_FAIL; 
+            return LOGIN_FAIL;
         }
     }
     else if (strcmp(id, USER2_ID) == 0)
@@ -40,7 +40,7 @@ int authenticate(char *id, char *pw)
         {
             return USER2_LOGIN;
         }
-        else 
+        else
         {
             return LOGIN_FAIL;
         }
@@ -131,39 +131,39 @@ int main(void)
             close(sockfd);
             for (;;)
             {
-            printf("auccept() is ok\n");
-            send(new_fd, ID_REQ, strlen(ID_REQ) + 1, 0);
-            read(new_fd, id, sizeof(id));
-            send(new_fd, PW_REQ, strlen(PW_REQ) + 1, 0);
-            read(new_fd, pw, sizeof(pw));
-            printf("===========================\n");
-            printf("User Information\n");
-            printf("id : %s  pw : %s \n", id, pw);
-            printf("===========================\n");
-            if (authenticate(id, pw) == USER1_LOGIN)
-            {
-                printf("%s Login Success \n", id);
-                send(new_fd, "Login Success User1 ! \n", 512, 0);
-                printf("Disconnected from %s\n", inet_ntoa(their_addr.sin_addr));
-                close(new_fd);
-                break;
-            }
-            else if (authenticate(id, pw) == USER2_LOGIN)
-            {
-                printf("%s Login Success\n", id);
-                send(new_fd, "Login Success User2 ! \n", 512, 0);
-                printf("Disconnected from %s\n", inet_ntoa(their_addr.sin_addr));
-                close(new_fd);
-                break;
-            }
-            else
-            {
-                printf("there is no such that infotmation id : %s pw : %s\n", id, pw);
-                send(new_fd, "Login Fail \n", 512, 0);
-                printf("Disconnected from %s\n", inet_ntoa(their_addr.sin_addr));
-                close(new_fd);
-                break;
-            }
+                printf("auccept() is ok\n");
+                send(new_fd, ID_REQ, strlen(ID_REQ) + 1, 0);
+                read(new_fd, id, sizeof(id));
+                send(new_fd, PW_REQ, strlen(PW_REQ) + 1, 0);
+                read(new_fd, pw, sizeof(pw));
+                printf("===========================\n");
+                printf("User Information\n");
+                printf("id : %s  pw : %s \n", id, pw);
+                printf("===========================\n");
+                if (authenticate(id, pw) == USER1_LOGIN)
+                {
+                    printf("%s Login Success \n", id);
+                    send(new_fd, "Login Success User1 ! \n", 512, 0);
+                    printf("Disconnected from %s\n", inet_ntoa(their_addr.sin_addr));
+                    close(new_fd);
+                    break;
+                }
+                else if (authenticate(id, pw) == USER2_LOGIN)
+                {
+                    printf("%s Login Success\n", id);
+                    send(new_fd, "Login Success User2 ! \n", 512, 0);
+                    printf("Disconnected from %s\n", inet_ntoa(their_addr.sin_addr));
+                    close(new_fd);
+                    break;
+                }
+                else
+                {
+                    printf("there is no such that infotmation id : %s pw : %s\n", id, pw);
+                    send(new_fd, "Login Fail \n", 512, 0);
+                    printf("Disconnected from %s\n", inet_ntoa(their_addr.sin_addr));
+                    close(new_fd);
+                    break;
+                }
             }
         }
     }
