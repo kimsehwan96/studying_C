@@ -1,0 +1,12 @@
+{
+    "userInfo" : [
+        {
+            "id" : "user1",
+            "pw" : "passwd1"
+        },
+        {
+            "id" : "user2",
+            "pw" : "passwd2"
+        }
+    ]
+}
