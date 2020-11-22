@@ -206,64 +206,64 @@ struct in_addr {
 
 ### 사용하게 될 시스템 콜들
 
-- socket()
+#### socket()
     - 새로운 소켓을 생성하고 그것의 디스크립터를 반환 함
 ```c
 int socket(int domain, int type, int protocol);
 ```
 
-- bind()
+####  bind()
     - 포트와 주소를 소켓과 연결함
 ```c
 int bind(int sockfd, struct sockaddr *my_addr, int addrlen);
 ```
 
-- listen()
+####  listen()
     - 소켓에 대한 커넥션을 listen
 ```c
 int listen(int sockfd, int backlog);
 ```
 
-- accpet()
+####  accpet()
     - 소켓에 대한 커넥션 요청을 받아들임
 ```c
 int accpet(int sockfd, struct sockaddr *addr, int *addrlen);
 ```
 
-- connect() 
+####  connect() 
     - 원격 호스트에 대한 커넥션을 초기화 함
 ```c
 int connect(int sockfd, struct sockaddr *serv_addr, int addrlen);
 ```
 
-- close()
+####  close()
     - 단 방향 소켓 디스크립터 닫기
 ```c
 int close(int sockfd);
 ```
 
 
-- send()
+####  send()
     - 소켓 디스크립터로 데이터를 보냄
 ```c
 int send(int sockfd, const void *msg, int len, int flags);
 ```
 - 리턴 값이 음수이면 실패?
 
-- recv()
+####  recv()
     - 소켓 디스크립터로부터 데이터를 받음
 ```c
 int recv(int sockfd, void *buf, int len, unsigned int flags);
 ```
 - 리턴 값이 음수이면 실패?
 
-- write()
+####  write()
     - 파일이나 디바이스, 소켓등에 쓰기 작업
 ```c
 ssize_t write(int fd, const void *buf, size_t count);
 ```
 
-- read()
+#### read()
     - 파일, 디바이스, 소켓등으로부터 읽기 작업
 ```c
 ssize_t read(int fd, *void buf, size_t count);
