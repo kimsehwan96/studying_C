@@ -128,3 +128,7 @@ void myIp(char* buf)
     }
 }
 ```
+
+<strong> 구현 사진 </strong>
+
+![1](images/1.png)
