@@ -14,6 +14,7 @@ void myIp(char* buf)
     int s;
     
     s = socket(AF_INET, SOCK_DGRAM, 0);
+    //for our kpu linux machine, we use interface name with enp5s0.
     strncpy(ifr.ifr_name, "enp5s0", IFNAMSIZ);
  
     if (ioctl(s, SIOCGIFADDR, &ifr) < 0) {
@@ -26,4 +27,3 @@ void myIp(char* buf)
         strcpy(buf, ipstr);
     }
 }
-
