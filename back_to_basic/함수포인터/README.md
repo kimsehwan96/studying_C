@@ -178,3 +178,27 @@ int main(void)
 }
 ```
 
+
+### 함수 포인터를 반환하여 사용하기
+
+```c
+#include <stdio.h>
+
+int add(int a, int b){
+    return a + b;
+}
+
+int(*process(char* a))(int, int){
+    printf("result : %s \n", a);
+    return add;
+}
+
+int main (void){
+    printf("%d\n", process("10과 20을 더해보겠다")(10, 20));
+    return 0;
+}
+```
+
+- 보면... 함수 포인터를 선언했고, 예는 리턴이 int
+
+## 자주 쓰이지 않는 슈퍼고급 문법
