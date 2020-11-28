@@ -16,6 +16,7 @@
 void mklistf(char* username, char* ipinfo) {
     FILE *fp;
     char *cwd = (char *)malloc(sizeof(char)*1024);
+    char filename[256];
     DIR *dir = NULL;
     struct dirent *entry = NULL; 
 
@@ -25,7 +26,9 @@ void mklistf(char* username, char* ipinfo) {
     struct stat info;
     getcwd(cwd, 1024);
     //for making list information file
-    fp = fopen(LIST_FILE_NAME, "w+");//with overwriting mode
+    strcat(filename, username);
+    strcat(filename, LIST_FILE_NAME); //to make USER1_file_list.lst 
+    fp = fopen(filename, "w+");//with overwriting mode
        if( (dir = opendir(cwd)) == NULL)
         {
                 printf("current directory error\n");

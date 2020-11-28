@@ -17,15 +17,27 @@
 #define USER2_LOGIN 2
 #define LOGIN_FAIL 0
 #define REQUEST_LIST_MSG "request list"
-
+#define BUFSIZE 512
 
 // 유저의 인증로직을 위한 함수.
-unsigned int authenticate(char *id, char *pw)
+unsigned int authenticate(int fd, char *id, char *pw)
 {
+    send(fd, ID_REQ, strlen(ID_REQ) + 1, 0); //strlen((char *)some_string +1) 인 이유는 Null 포함
+    read(fd, id, sizeof(id));
+    send(fd, PW_REQ, strlen(PW_REQ) + 1, 0);
+    read(fd, pw, sizeof(pw));
+
+    printf("===========================\n");
+    printf("User Information\n");
+    printf("id : %s  pw : %s \n", id, pw);
+    printf("===========================\n");
+
     if (strcmp(id, USER1_ID) == 0)
     {
         if (strcmp(pw, USER1_PW) == 0)
         {
+            printf("%s Login success \n", id);
+            send(fd, "LOGIN SUCCESS USER 1 \n", 512, 0);
             return USER1_LOGIN;
         }
         else
@@ -37,6 +49,8 @@ unsigned int authenticate(char *id, char *pw)
     {
         if (strcmp(pw, USER2_PW) == 0)
         {
+            printf("%s Login success \n", id);
+            send(fd, "LOGIN SUCCESS USER 2 \n", 512, 0);
             return USER2_LOGIN;
         }
         else
@@ -47,5 +61,8 @@ unsigned int authenticate(char *id, char *pw)
     else
         return LOGIN_FAIL;
 }
+
+//클라이언트는 서버에게 lst 파일을 보내줘야 함.
+unsigned int client_process();
 // 유저의 id와 passwd를 인자로 받아, 사전 정의된 유저 정보에 대해서만 처리
 // 더 좋은 방법이 있을 것 같지만 이번 과제에서는 이렇게 처리할 예정,

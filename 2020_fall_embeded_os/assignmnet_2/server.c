@@ -6,15 +6,35 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <pthread.h> //for posix thread
 //for custom functions.
 #include "common.h"
 #include "my_ip.h"
 #include "list_func.h"
 
 //macro
-#define SERV_IP "220.149.128.100" // 서버의 로컬 호스트 주소를 define
+#define SERV_IP "127.0.0.1" // 서버의 로컬 호스트 주소를 define
 #define SERV_PORT 4140            //서버의 포트 번호를 define
 #define BACKLOG 10
+
+void hanlder(char* command){
+    FILE* fp; //for list file open
+    if(strcmp(command, "ls") == 0){
+        if(fp = fopen("server.lst", O_RDONLY) <0){
+            perror("fopen");
+            exit(1);
+        }
+        //do some logics for here
+    }
+    else if (strcmp(command, "exit")==0){
+        exit(1);
+    }
+    else {
+        printf("no command like that");
+        exit(1);
+    }
+}
+
 
 int main()
 {
@@ -35,7 +55,7 @@ int main()
 
     //socket TCP file descirptor
     //check sockfd condition
-    if ((sockfd = sokcet(AF_INET, SOCK_STREAM, 0)) == -1)
+    if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
     {
         perror("serverf-socket() error occured");
         exit(1);
@@ -53,7 +73,7 @@ int main()
 
     memset(&(my_addr.sin_zero), 0, 8);
 
-    if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, (char *)&val, szieof(val)) < 0)
+    if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, (char *)&val, sizeof(val)) < 0)
     {
         perror("setsockopt");
         close(sockfd);
@@ -80,57 +100,53 @@ int main()
     }
 
     memset(id, 0, sizeof(id));
-    memset(pw, 0, sizeop(pw));
+    memset(pw, 0, sizeof(pw));
 
     sin_size = sizeof(struct sockaddr_in);
 
     for (;;)
     {
-        new_fd = accpet(sockfd, (struct sockaddr *)&their_addr, &sin_size);
+        new_fd = accept(sockfd, (struct sockaddr *)&their_addr, &sin_size);
 
         if (new_fd < 0)
         {
             perror("bind error ");
             exit(1);
         }
-        printf("Connection accpet from %s\n", inet_ntoa(their_addr.sin_addr));
+        printf("Connection accept from %s\n", inet_ntoa(their_addr.sin_addr));
 
         if ((childpid = fork()) == 0)
         { //child process
-            close(sockfd);
+            //close(sockfd); 더이상 필요하지 않을때 (프로그램 서버측 종료시에) 종료하는게 맞음
             for (;;)
             {
-                prinf("accept ok \n");
-                //send id, pw request msg and receive from client
-                send(new_fd, ID_REQ, strlen(ID_REQ) + 1, 0); //strlen((char *)some_string +1) 인 이유는 Null 포함
-                read(new_fd, id, sizeof(id));
-                send(new_fd, PW_REQ, strlen(PW_REQ) + 1, 0);
-                read(new_fd, pw, sizeof(pw));
-                //유저가 입력한 내용을 서버에서 출력
-                printf("===========================\n");
-                printf("User Information\n");
-                printf("id : %s  pw : %s \n", id, pw);
-                printf("===========================\n");
+                printf("accept ok \n");
 
-                if (authenticate(id, pw) == USER1_LOGIN)
-                {
-                    printf("%s Login success \n", id);
-                    send(new_fd, "LOGIN SUCCESS USER 1 \n", 512, 0);
-                    //some logic should be in here for user1 (callback function)
+                if (authenticate(new_fd, id, pw) == USER1_LOGIN)
+                {   /*
+                    *some logic should be in here for user1 (callback function)
+                    *until client send "exit", this process gonna be doing.
+                    *TODO: 클라이언트의 request 명령에 따라서 서버측 작업을 수행한다.
+                    * 클라이언트가 수행하고 싶은 명령 목록을 나누어보자
+                    * 1. 리스트 전송
+                    * 2. 서버측 파일 리스트 확인
+                    * 3. 특정 파일 요청 
+                    * 4. 종료
+                    * 우선 1,2,4만 수행해보자.
+                    */
                     close(new_fd);
                     break;
                 }
-                else if (authenticate(id, pw) == USER2_LOGIN)
+                else if (authenticate(new_fd, id, pw) == USER2_LOGIN)
                 {
-                    printf("%s Login success \n", id);
-                    send(new_fd, "LOGIN SUCCESS USER 2 \n", 512, 0);
-                    //some logic should be in here for user1 (callback function)
+                    //some logic should be in here for user2 (callback function)
+                    //until client send "exit", this process gonna be doing.
                     close(new_fd);
                     break;
                 }
                 else
                 {
-                    printf("there is no such that inofrmation id : %s pw : %s", id, pw);
+                    printf("there is no such that inofrmation id : %s pw : %s\n", id, pw);
                     send(new_fd, "LOGIN FAIL \n", 512, 0);
                     printf("Disconnected from %s\n", inet_ntoa(their_addr.sin_addr));
                     close(new_fd);
