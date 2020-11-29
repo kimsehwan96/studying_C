@@ -16,28 +16,43 @@
 #define SERV_IP "127.0.0.1" // 서버의 로컬 호스트 주소를 define
 #define SERV_PORT 4140            //서버의 포트 번호를 define
 #define BACKLOG 10
+#define CMSUC 1 //handler 성공
+#define CMFAIL 0 //handler 실패
+#define CMEXIT -1 //hanlder exit 요청
+#define MAXLINE 512
 
-void hanlder(char* command){
+int handler(char* command) {
     FILE* fp; //for list file open
+    int c;
+    printf("this is input command %s\n", command);
+    printf("this is cmp with ls %d\n", strcmp(command, "ls"));
+    printf("this is cmp with exit %d\n", strcmp(command, "exit"));
     if(strcmp(command, "ls") == 0){
-        if(fp = fopen("server.lst", O_RDONLY) <0){
+        if((fp = fopen("server.lst", O_RDONLY)) < 0){
             perror("fopen");
-            exit(1);
+            return CMFAIL;
         }
-        //do some logics for here
+        while( (c=fgetc(fp)) != EOF){
+            putchar(c);
+        }
+        fclose(fp);
+        return CMSUC;
     }
-    else if (strcmp(command, "exit")==0){
-        exit(1);
+    else if (strcmp(command, "exit") == 0 ){
+        printf("client request exit !");
+        return CMEXIT;
     }
     else {
         printf("no command like that");
-        exit(1);
+        return CMFAIL;
     }
+    return CMFAIL;
 }
 
 
 int main()
 {
+    int cmdstat;
     int sockfd, new_fd; //server 호스트의 소켓 파일디스크립터 및 새로운 연결을 정의할 new_fd
     struct sockaddr_in my_addr;
     struct sockaddr_in their_addr;
@@ -46,7 +61,7 @@ int main()
     //for server concurrency, we will fork server process with each connection request.
     pid_t childpid;
     int rcv_byte;
-    char buf[512];
+    char *buf = (char *)malloc(MAXLINE);
     char id[20];
     char pw[20];
     char msg[512];
@@ -134,6 +149,14 @@ int main()
                     * 4. 종료
                     * 우선 1,2,4만 수행해보자.
                     */
+                    for(;;){
+                        read(new_fd, buf, sizeof(buf));
+                        cmdstat = handler(buf);
+                        printf("cmd stat %d\n", cmdstat);
+                        if (cmdstat == CMEXIT){
+                            break;
+                        }
+                    }
                     close(new_fd);
                     break;
                 }

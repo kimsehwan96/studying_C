@@ -56,7 +56,9 @@ int main(void){
         printf("connect ok\n");
     }
     auth_request(sockfd, id, pw, buf);
-
+    scanf("%s", &buf);
+    send(sockfd, buf, sizeof(buf), 0);
+    read(sockfd, buf, sizeof(buf));
     close(sockfd);
 
     
