@@ -6,14 +6,14 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 
-#define LIST_FILE_NAME "file_list.lst"
+#define LIST_FILE_NAME "_file_list.lst"
 
 
 // for now it just print
 // we will make a file with name file_list.lst for server side use.
 //with arguments username & ip address
 
-void mklistf(char* username, char* ipinfo) {
+void mklistf(const char* username,const char* ipinfo) {
     FILE *fp;
     char *cwd = (char *)malloc(sizeof(char)*1024);
     char filename[256];
@@ -26,7 +26,7 @@ void mklistf(char* username, char* ipinfo) {
     struct stat info;
     getcwd(cwd, 1024);
     //for making list information file
-    strcat(filename, username);
+    strcpy(filename, username);
     strcat(filename, LIST_FILE_NAME); //to make USER1_file_list.lst 
     fp = fopen(filename, "w+");//with overwriting mode
        if( (dir = opendir(cwd)) == NULL)

@@ -7,6 +7,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <pthread.h> //for posix thread
+#include <signal.h> //for signal handler.
 //for custom functions.
 #include "common.h"
 #include "my_ip.h"
@@ -19,9 +20,10 @@
 #define CMSUC 1 //handler 성공
 #define CMFAIL 0 //handler 실패
 #define CMEXIT -1 //hanlder exit 요청
+#define CMDLS 10
 #define MAXLINE 512
 
-int handler(char* command) {
+int cmd_handler(char* command) {
     FILE* fp; //for list file open
     int c;
     printf("this is input command %s\n", command);
@@ -49,6 +51,12 @@ int handler(char* command) {
     return CMFAIL;
 }
 
+void ls_handler(int sig){
+    if (sig== 10){
+        printf("Ls command listened !");
+    }
+}
+
 
 int main()
 {
@@ -56,6 +64,10 @@ int main()
     int sockfd, new_fd; //server 호스트의 소켓 파일디스크립터 및 새로운 연결을 정의할 new_fd
     struct sockaddr_in my_addr;
     struct sockaddr_in their_addr;
+    struct sigaction *ls_act = (struct sigaction *)malloc(sizeof(struct sigaction));
+    ls_act->sa_handler = ls_handler;//handler 등록
+    memset(&(ls_act->sa_mask), 0, sizeof(ls_act->sa_mask));
+    ls_act->sa_flags = 0;
     unsigned int sin_size;
 
     //for server concurrency, we will fork server process with each connection request.
@@ -149,21 +161,21 @@ int main()
                     * 4. 종료
                     * 우선 1,2,4만 수행해보자.
                     */
-                    for(;;){
-                        read(new_fd, buf, sizeof(buf));
-                        cmdstat = handler(buf);
-                        printf("cmd stat %d\n", cmdstat);
-                        if (cmdstat == CMEXIT){
-                            break;
-                        }
-                    }
+                    memset(buf, 0 ,sizeof(MAXLINE));
+                    *(int *)&buf[0] = 1;
+                    send(new_fd, buf, sizeof(*buf), 0);
+                    //1이라는 정수를 전송해서 user1 로그인이 성공했음을 클라이언크에게 알림
+                    //이제 파일을 전송받기위해 대기.
+                    //먼저 이 때 클라이언트가 파일 이름을 보내줄 것이다. (저장할 파일 이름 버퍼에 저장)
+                    //fd를 열어놓음
+                    //이후 파일 사이즈를 받는다. EOF까지 하나씩 받을 예정
+                    // 저장하고 fd 닫기
                     close(new_fd);
                     break;
                 }
                 else if (authenticate(new_fd, id, pw) == USER2_LOGIN)
                 {
                     //some logic should be in here for user2 (callback function)
-                    //until client send "exit", this process gonna be doing.
                     close(new_fd);
                     break;
                 }

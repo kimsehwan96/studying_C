@@ -7,11 +7,13 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include "common.h"
+#include "list_func.h" //내부 파일 리스트를 생성하는 함수
+#include "my_ip.h" //ip check 함수
 
 #define SERV_IP "127.0.0.1"
 #define SERV_PORT 4140
 
-void auth_request(int fd, char* id, char* pw, char buf[BUFSIZE]){
+void auth_request(int fd, char* id, char* pw, char *buf){
     read(fd, buf, BUFSIZE);
     printf("%s", buf);
     scanf("%s", id);
@@ -22,15 +24,13 @@ void auth_request(int fd, char* id, char* pw, char buf[BUFSIZE]){
     scanf("%s", pw);
     send(fd, pw, strlen(pw) + 1, 0);
     memset(buf, 0, BUFSIZE);
-    read(fd, buf, BUFSIZE);
-    printf("\n%s", buf);
 }
 
 int main(void){
     int sockfd;
     struct sockaddr_in dest_addr;
     int rcv_byte;
-    char buf[512];
+    char *buf = (char *)malloc(BUFSIZE);
     char id[20];
     char pw[20];
 
@@ -55,11 +55,23 @@ int main(void){
     else {
         printf("connect ok\n");
     }
-    auth_request(sockfd, id, pw, buf);
-    scanf("%s", &buf);
-    send(sockfd, buf, sizeof(buf), 0);
-    read(sockfd, buf, sizeof(buf));
+    auth_request(sockfd, id, pw, buf); //if user 1 success, we will get 1
+    memset(buf, 0, sizeof(BUFSIZE));
+    read(sockfd, buf, sizeof(BUFSIZE));
+    printf("%d", *(int *)&buf[0]);
+    if (*(int *)&buf[0]==1){
+        printf("login success");
+        //login success logic here
+        mklistf("user1", "127.0.0.1"); //뒤에 인자(ip address)는 my_ip 헤더를 이용할 것.
+        //user1_file_list.lst 생성 완료, 이 파일을 서버에 전송해야 함.
+        //sockfd를 통해 파일을 전송하는 로직 작성해야 함
+        //1. 파일 이름을 먼저 전송한다
+        //2. 파일의 크기를 전송한다.
+        //3. EOF까지 파일을 char로 BUFSIZE에 최대한 담아서 보낸다.
+    }
+    else {
+        printf("login failed.");
+    }
     close(sockfd);
-
-    
+    free(buf);
 }

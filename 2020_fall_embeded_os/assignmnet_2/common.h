@@ -37,7 +37,7 @@ unsigned int authenticate(int fd, char *id, char *pw)
         if (strcmp(pw, USER1_PW) == 0)
         {
             printf("%s Login success \n", id);
-            send(fd, "LOGIN SUCCESS USER 1 \n", 512, 0);
+            //send(fd, "LOGIN SUCCESS USER 1 \n", 512, 0);
             return USER1_LOGIN;
         }
         else
@@ -50,7 +50,7 @@ unsigned int authenticate(int fd, char *id, char *pw)
         if (strcmp(pw, USER2_PW) == 0)
         {
             printf("%s Login success \n", id);
-            send(fd, "LOGIN SUCCESS USER 2 \n", 512, 0);
+            //send(fd, "LOGIN SUCCESS USER 2 \n", 512, 0);
             return USER2_LOGIN;
         }
         else
