@@ -9,6 +9,7 @@
 // with strcpy
 void myIp(char* buf)
 {
+    //인자로 들어온 buf의 사이즈가 너무 작을경우 에러 반환 로직 필요.
     struct ifreq ifr;
     char ipstr[40];
     int s;

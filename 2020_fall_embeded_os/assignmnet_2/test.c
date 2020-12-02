@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include "list_func.h"
+
 
 
 int main(){

@@ -59,4 +59,5 @@ void mklistf(const char* username,const char* ipinfo) {
         }
         free(cwd);
         closedir(dir);
+        fclose(fp);
     }

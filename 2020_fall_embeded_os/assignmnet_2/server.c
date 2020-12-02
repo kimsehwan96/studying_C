@@ -8,6 +8,7 @@
 #include <arpa/inet.h>
 #include <pthread.h> //for posix thread
 #include <signal.h> //for signal handler.
+#include <fcntl.h>
 //for custom functions.
 #include "common.h"
 #include "my_ip.h"
@@ -22,41 +23,9 @@
 #define CMEXIT -1 //hanlder exit 요청
 #define CMDLS 10
 #define MAXLINE 512
+#define SERV_FILE "users_file.lst"
 
-int cmd_handler(char* command) {
-    FILE* fp; //for list file open
-    int c;
-    printf("this is input command %s\n", command);
-    printf("this is cmp with ls %d\n", strcmp(command, "ls"));
-    printf("this is cmp with exit %d\n", strcmp(command, "exit"));
-    if(strcmp(command, "ls") == 0){
-        if((fp = fopen("server.lst", O_RDONLY)) < 0){
-            perror("fopen");
-            return CMFAIL;
-        }
-        while( (c=fgetc(fp)) != EOF){
-            putchar(c);
-        }
-        fclose(fp);
-        return CMSUC;
-    }
-    else if (strcmp(command, "exit") == 0 ){
-        printf("client request exit !");
-        return CMEXIT;
-    }
-    else {
-        printf("no command like that");
-        return CMFAIL;
-    }
-    return CMFAIL;
-}
-
-void ls_handler(int sig){
-    if (sig== 10){
-        printf("Ls command listened !");
-    }
-}
-
+void recv_file(void);//각 클라이언트로부터 파일을 recv 하는 로직 함수화 필요
 
 int main()
 {
@@ -64,11 +33,9 @@ int main()
     int sockfd, new_fd; //server 호스트의 소켓 파일디스크립터 및 새로운 연결을 정의할 new_fd
     struct sockaddr_in my_addr;
     struct sockaddr_in their_addr;
-    struct sigaction *ls_act = (struct sigaction *)malloc(sizeof(struct sigaction));
-    ls_act->sa_handler = ls_handler;//handler 등록
-    memset(&(ls_act->sa_mask), 0, sizeof(ls_act->sa_mask));
-    ls_act->sa_flags = 0;
     unsigned int sin_size;
+    char file_name[MAXLINE];
+    int file_size;
 
     //for server concurrency, we will fork server process with each connection request.
     pid_t childpid;
@@ -168,9 +135,21 @@ int main()
                     //이제 파일을 전송받기위해 대기.
                     //먼저 이 때 클라이언트가 파일 이름을 보내줄 것이다. (저장할 파일 이름 버퍼에 저장)
                     //fd를 열어놓음
-                    //이후 파일 사이즈를 받는다. EOF까지 하나씩 받을 예정
-                    // 저장하고 fd 닫기
+                    int fd = 0;
+                    fd = open(SERV_FILE, O_CREAT | O_RDWR | O_APPEND, 777); //읽기쓰기 및 이어쓰기.
+                    //file_name read
+                    read(new_fd, file_name, MAXLINE);
+                    printf("client will sent this file %s \n", file_name);
+                    //파일 수신 로직
+                    int n_bytes = 0;
+                    while((n_bytes = read(new_fd, buf, MAXLINE)) > 0){
+                        write(fd, buf, n_bytes);
+                        printf("%s was receive\n n_bytes : %d ", buf, n_bytes);
+                    }
+                    printf("file receive done. \n");
+                    //파일 수신이 끝난 뒤 파일 기술자 닫음.
                     close(new_fd);
+                    close(fd);
                     break;
                 }
                 else if (authenticate(new_fd, id, pw) == USER2_LOGIN)
