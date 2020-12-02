@@ -1,4 +1,9 @@
 //here will be useful common functions
+/*
+유저 인증 및 macro 상수를 정의하는 파일 임.
+유저의 id, password를 저장하고 있으며,
+유저를 구분하기 위한 token 값을 상수로 define 하여 사용함.
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -37,7 +42,6 @@ unsigned int authenticate(int fd, char *id, char *pw)
         if (strcmp(pw, USER1_PW) == 0)
         {
             printf("%s Login success \n", id);
-            //send(fd, "LOGIN SUCCESS USER 1 \n", 512, 0);
             return USER1_LOGIN;
         }
         else
@@ -50,7 +54,6 @@ unsigned int authenticate(int fd, char *id, char *pw)
         if (strcmp(pw, USER2_PW) == 0)
         {
             printf("%s Login success \n", id);
-            //send(fd, "LOGIN SUCCESS USER 2 \n", 512, 0);
             return USER2_LOGIN;
         }
         else
