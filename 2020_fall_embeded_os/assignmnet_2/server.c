@@ -25,6 +25,12 @@
 #define MAXLINE 512 //버퍼의 사이즈.
 
 void recv_file(void); //각 클라이언트로부터 파일을 recv 하는 로직 함수화 필요
+int make_tmp_file(char* path, int token);
+    //lst 파일들이 있는 경로를 입력받고
+    //해당 경로에있는 모든 lst 파일을 순회하면서
+    //임시 파일에 끝에 계속해서 데이터를 붙인다
+    //이후 임시파일의 파일디스크립터를 리턴해 소모할 수 있도록 한다.
+
 
 int main()
 {
@@ -221,4 +227,40 @@ int main()
     }
     close(new_fd);
     close(sockfd);
+}
+
+
+
+int make_tmp_file(char* path, int token){
+    int fd;//리턴해줄 fd
+    int tmp_fd; //순회하면서 돌 fd
+    char user_token[10];
+    char buf[MAXLINE]; //유용하게 사용할 버퍼
+    char* path = (char *)malloc(MAXLINE);
+    char* tmp_file_name = (char *)malloc(MAXLINE);
+    DIR *dir = NULL;
+    struct dirent *entry = NULL; //디럭터리에서 파일만 찾을려고 함
+
+    sprintf(user_token, "%d" , token); //int형 user token을 문자열로 변환
+    strcpy(buf, "user");//user
+    strcat(buf, user_token);//user1
+    strcat(buf, "_tmp.lst"); //user1_tmp.lst
+    strcpy(tmp_file_name, buf); //tmp_file_name에 user1_tmp.lst 문자열 저장
+
+    getcwd(buf, MAXLINE);
+    strcat(buf, "/data");// 하위 디렉터리 /data 의 절대경로를 얻음
+    strcat(buf, tmp_file_name);
+    strcpy(path, buf); //path에 buf에 담긴 경로 문자열 담아놓음
+
+    fd = open(tmp_file_name, 
+        O_RDWR | O_TRUNC, 
+        S_IRWXU | S_IRWXG |  S_IWGRP |  S_IRWXO);
+    if(fd < 0){
+        perror("open error");
+        return -1; 
+    }
+    //우선 디렉터리를 연 이후에 또 파일 이름을 만들어야 되네
+    //계속해서 진행해보기
+
+
 }
