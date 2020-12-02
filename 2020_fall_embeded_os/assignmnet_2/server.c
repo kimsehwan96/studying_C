@@ -7,7 +7,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <pthread.h> //for posix thread
-#include <signal.h> //for signal handler.
+#include <signal.h>  //for signal handler.
 #include <fcntl.h>
 //for custom functions.
 #include "common.h"
@@ -16,16 +16,16 @@
 
 //macro
 #define SERV_IP "127.0.0.1" // 서버의 로컬 호스트 주소를 define
-#define SERV_PORT 4140            //서버의 포트 번호를 define
+#define SERV_PORT 4140      //서버의 포트 번호를 define
 #define BACKLOG 10
-#define CMSUC 1 //handler 성공
-#define CMFAIL 0 //handler 실패
+#define CMSUC 1   //handler 성공
+#define CMFAIL 0  //handler 실패
 #define CMEXIT -1 //hanlder exit 요청
 #define CMDLS 10
 #define MAXLINE 512
 #define SERV_FILE "users_file.lst"
 
-void recv_file(void);//각 클라이언트로부터 파일을 recv 하는 로직 함수화 필요
+void recv_file(void); //각 클라이언트로부터 파일을 recv 하는 로직 함수화 필요
 
 int main()
 {
@@ -117,7 +117,7 @@ int main()
                 printf("accept ok \n");
 
                 if (authenticate(new_fd, id, pw) == USER1_LOGIN)
-                {   /*
+                { /*
                     *some logic should be in here for user1 (callback function)
                     *until client send "exit", this process gonna be doing.
                     *TODO: 클라이언트의 request 명령에 따라서 서버측 작업을 수행한다.
@@ -128,7 +128,7 @@ int main()
                     * 4. 종료
                     * 우선 1,2,4만 수행해보자.
                     */
-                    memset(buf, 0 ,sizeof(MAXLINE));
+                    memset(buf, 0, sizeof(MAXLINE));
                     *(int *)&buf[0] = 1;
                     send(new_fd, buf, sizeof(*buf), 0);
                     //1이라는 정수를 전송해서 user1 로그인이 성공했음을 클라이언크에게 알림
@@ -142,7 +142,8 @@ int main()
                     printf("client will sent this file %s \n", file_name);
                     //파일 수신 로직
                     int n_bytes = 0;
-                    while((n_bytes = read(new_fd, buf, MAXLINE)) > 0){
+                    while ((n_bytes = read(new_fd, buf, MAXLINE)) > 0)
+                    {
                         write(fd, buf, n_bytes);
                         printf("%s was receive\n n_bytes : %d ", buf, n_bytes);
                     }

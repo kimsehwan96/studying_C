@@ -9,12 +9,13 @@
 #include <fcntl.h>
 #include "common.h"
 #include "list_func.h" //내부 파일 리스트를 생성하는 함수
-#include "my_ip.h" //ip check 함수
+#include "my_ip.h"     //ip check 함수
 
 #define SERV_IP "127.0.0.1"
 #define SERV_PORT 4140
 
-void auth_request(int fd, char* id, char* pw, char *buf){
+void auth_request(int fd, char *id, char *pw, char *buf)
+{
     read(fd, buf, BUFSIZE);
     printf("%s", buf);
     scanf("%s", id);
@@ -27,9 +28,10 @@ void auth_request(int fd, char* id, char* pw, char *buf){
     memset(buf, 0, BUFSIZE);
 }
 
-void send_file(void);//각 클라이언트 별로 파일을 send하는 로직 함수화 필요.
+void send_file(void); //각 클라이언트 별로 파일을 send하는 로직 함수화 필요.
 
-int main(void){
+int main(void)
+{
     int sockfd, fd;
     struct sockaddr_in dest_addr;
     int rcv_byte;
@@ -42,28 +44,33 @@ int main(void){
 
     sockfd = socket(AF_INET, SOCK_STREAM, 0); //socket fd
 
-    if (sockfd == -1){
+    if (sockfd == -1)
+    {
         perror("socket");
         exit(1);
     }
-    else {
+    else
+    {
         printf("socket is ok \n");
     }
-    
+
     dest_addr.sin_family = AF_INET;
     dest_addr.sin_port = htons(SERV_PORT);
     dest_addr.sin_addr.s_addr = inet_addr(SERV_IP);
     memset(&(dest_addr.sin_zero), 0, 8);
-    if(connect(sockfd, (struct sockaddr* )&dest_addr, sizeof(struct sockaddr)) == -1){
+    if (connect(sockfd, (struct sockaddr *)&dest_addr, sizeof(struct sockaddr)) == -1)
+    {
         perror("connect");
         exit(1);
     }
-    else {
+    else
+    {
         printf("connect ok\n");
     }
     auth_request(sockfd, id, pw, buf); //if user 1 success, we will get 1
     read(sockfd, buf, BUFSIZE);
-    if (*(int *)&buf[0]==1){ //유저 1 로그인 성공
+    if (*(int *)&buf[0] == 1)
+    { //유저 1 로그인 성공
         printf("login success\n");
         //login success logic here
         mklistf("user1", "127.0.0.1"); //뒤에 인자(ip address)는 my_ip 헤더를 이용할 것.
@@ -74,7 +81,8 @@ int main(void){
         //file descriptor open
         strcpy(file_name, "user1_file_list.lst");
         //filename send
-        if ((fd = open("user1_file_list.lst", O_RDWR)) <0){
+        if ((fd = open("user1_file_list.lst", O_RDWR)) < 0)
+        {
             perror("open() error !");
         }
         //file name sending
@@ -89,11 +97,13 @@ int main(void){
             따라서, n_bytes만큼 데이터를 송신해야 하며
             buf[n_bytes]의 EOF문자를 NULL로 바꿔주는 로직이 포함 됨.
         */
-        while((n_bytes = read(fd, file_buf, BUFSIZE)) > 0){
-            if (n_bytes < BUFSIZE){
+        while ((n_bytes = read(fd, file_buf, BUFSIZE)) > 0)
+        {
+            if (n_bytes < BUFSIZE)
+            {
                 buf[n_bytes] = '\0';
             }
-            count ++;
+            count++;
             printf("count : %d n_bytes : %d : this is sended : %s ", count, n_bytes, file_buf);
             send(sockfd, file_buf, n_bytes, 0);
         }
@@ -101,12 +111,13 @@ int main(void){
         printf("file send done ! \n");
         free(file_buf);
         close(fd);
-        
     }
-    else if (*(int *)&buf[0]==1) {
+    else if (*(int *)&buf[0] == 1)
+    {
         //user 2 logic
     }
-    else {
+    else
+    {
         printf("login failed.");
     }
     close(sockfd);
