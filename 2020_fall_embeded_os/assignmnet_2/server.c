@@ -10,12 +10,14 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include <pthread.h> //for posix thread
-#include <signal.h>  //for signal handler.
-#include <fcntl.h>
+#include <pthread.h>  //for posix thread
+#include <signal.h>   //for signal handler.
+#include <fcntl.h>    //for file handling
+#include <sys/stat.h> //for file status
+#include <dirent.h>
 //for custom functions.
-#include "common.h" //macro 상수 define
-#include "my_ip.h" // 불필요.
+#include "common.h"    //macro 상수 define
+#include "my_ip.h"     // 불필요.
 #include "list_func.h" //실행파일이 수행중인 디렉터리의 파일 목록을 파일로 만드는 함수 구현되어있음
 
 //macro
@@ -25,22 +27,21 @@
 #define MAXLINE 512 //버퍼의 사이즈.
 
 void recv_file(void); //각 클라이언트로부터 파일을 recv 하는 로직 함수화 필요
-int make_tmp_file(char* path, int token);
-    //lst 파일들이 있는 경로를 입력받고
-    //해당 경로에있는 모든 lst 파일을 순회하면서
-    //임시 파일에 끝에 계속해서 데이터를 붙인다
-    //이후 임시파일의 파일디스크립터를 리턴해 소모할 수 있도록 한다.
-
+int* make_tmp_file(int token, int* file_d);
+//lst 파일들이 있는 경로를 입력받고
+//해당 경로에있는 모든 lst 파일을 순회하면서
+//임시 파일에 끝에 계속해서 데이터를 붙인다
+//이후 임시파일의 파일디스크립터를 리턴해 소모할 수 있도록 한다.
 
 int main()
 {
     int cmdstat;
     int sockfd, new_fd; //server 호스트의 소켓 파일디스크립터 및 새로운 연결을 정의할 new_fd
-    int file_size; //파일의 사이즈, 미사용중
+    int file_size;      //파일의 사이즈, 미사용중
     struct sockaddr_in my_addr;
     struct sockaddr_in their_addr;
     unsigned int sin_size;
-    char file_name[MAXLINE]; //파일의 이름 -> 서버에서 유저별로 관리하기 위함
+    char file_name[MAXLINE];                           //파일의 이름 -> 서버에서 유저별로 관리하기 위함
     char server_file_path[MAXLINE] = "./data/server_"; //각 유저별로 서버에 파일을 따로 저장함.
     //서버 코드가 돌아가는 디렉터리의 하위 폴더인 data 밑에 저장함
 
@@ -132,10 +133,10 @@ int main()
                     //1이라는 정수를 전송해서 user1 로그인이 성공했음을 클라이언트에게 알림
                     //이제 파일을 전송받기위해 대기.
                     read(new_fd, file_name, MAXLINE);
-                    printf("client will sent this file %s \n", file_name);//먼저 이 때 클라이언트가 파일 이름을 보내줄 것
-                    strcat(server_file_path, file_name);//server_user1_file_list.lst 라는 이름으로 파일 관리.
-                    int fd = 0; //fd를 열어놓음
-                    fd = open(server_file_path, O_CREAT | O_RDWR | O_TRUNC,  S_IRWXU | S_IRWXG |  S_IWGRP |  S_IRWXO); //읽기쓰기 및 덮어쓰기, 실행권한
+                    printf("client will sent this file %s \n", file_name);                                          //먼저 이 때 클라이언트가 파일 이름을 보내줄 것
+                    strcat(server_file_path, file_name);                                                            //server_user1_file_list.lst 라는 이름으로 파일 관리.
+                    int fd = 0;                                                                                     //fd를 열어놓음
+                    fd = open(server_file_path, O_CREAT | O_RDWR | O_TRUNC, 0644); //읽기쓰기 및 덮어쓰기, 실행권한
                     //기존에 user의 파일이 있을경우 업데이트를 위해 항상 접속하면 새로 작성한다.
                     //파일 수신 로직
                     int n_bytes = 0;
@@ -143,7 +144,8 @@ int main()
                     {
                         write(fd, buf, n_bytes);
                         printf("%s was receive\n n_bytes : %d ", buf, n_bytes);
-                        if (n_bytes < MAXLINE){
+                        if (n_bytes < MAXLINE)
+                        {
                             printf("file receive done. \n");
                             close(fd);
                             break;
@@ -155,35 +157,41 @@ int main()
                     //임시파일로서 특정 디렉터리에 있는 파일들을 조합하고
                     //그 데이터를 사용자에게 전송해준 이후에 삭제하는 로직이 필요 할 듯.
                     close(fd);
-                   //메인 로직, 클라이언트로부터 명령어를 전달받아 다양한 로직을 수행함. 
-                    for(;;){
+                    //메인 로직, 클라이언트로부터 명령어를 전달받아 다양한 로직을 수행함.
+                    for (;;)
+                    {
                         printf("server is wating for client's command.....\n");
                         read(new_fd, buf, MAXLINE);
                         printf("client send this command %s \n", buf);
-                        if(strcmp("hello", buf) == 0){
+                        if (strcmp("hello", buf) == 0)
+                        {
                             printf("server get hello");
-                            for(int i = 0; i<10; i++){
+                            for (int i = 0; i < 10; i++)
+                            {
                                 fputs("..", stdout);
                             }
                             strcpy(buf, "you said helo ?");
                             send(new_fd, buf, MAXLINE, 0);
                         }
-                        else if(strcmp("exit", buf) == 0){
+                        else if (strcmp("exit", buf) == 0)
+                        {
                             printf("client conenct close !\n");
                             strcpy(buf, "exit");
                             send(new_fd, buf, MAXLINE, 0);
                             break;
                         }
-                        else if(strcmp("show", buf) == 0){
+                        else if (strcmp("show", buf) == 0)
+                        {
                             printf("user%d requested file list ... \n", token);
-                            //파일디스크립터를 연다. data 디렉터리에 갖고있는 파일 목록을 확인하고
-                            //해당 파일들을 순서대로 이어붙여서 임시 파일 생성
-                            //임시파일 생성 후 클라이언트에게 전달
-                            //클라이언트는 이 파일을 확인 한다.
-                            //서버는 이 파일을 유지하다가, 커넥션이 종료될때 삭제한다.
-                            //파일명은 user1_request.lst 로 만든다.
+                            fd = *(int *)make_tmp_file(token, &fd);
+                            read(fd, buf, BUFSIZE);
+                            printf("this is new tmp file ! \n");
+                            printf("%s", buf);
+                            send(new_fd, buf, MAXLINE, 0); 
+                            close(fd);
                         }
-                        else {
+                        else
+                        {
                             printf("thre is no command like that ! \n");
                             strcpy(buf, "exit");
                             send(new_fd, buf, MAXLINE, 0);
@@ -194,7 +202,7 @@ int main()
                     break;
                 }
                 else if (token == USER2_LOGIN)
-                {   
+                {
                     memset(buf, 0, sizeof(MAXLINE));
                     *(int *)&buf[0] = token; //user2 인증 성공 정보를 보내기 위함
                     send(new_fd, buf, sizeof(buf), 0);
@@ -202,7 +210,7 @@ int main()
                     printf("client will sent this file %s \n", file_name);
                     strcat(server_file_path, file_name);
                     int fd = 0;
-                    fd = open(server_file_path, O_CREAT | O_RDWR | O_TRUNC,  S_IRWXU | S_IRWXG |  S_IWGRP |  S_IRWXO); //읽기쓰기 및 덮어쓰기, 실행권한
+                    fd = open(server_file_path, O_CREAT | O_RDWR | O_TRUNC, 0644); //읽기쓰기 및 덮어쓰기, 실행권한
                     int n_bytes = 0;
                     while ((n_bytes = read(new_fd, buf, MAXLINE)) > 0)
                     {
@@ -229,38 +237,96 @@ int main()
     close(sockfd);
 }
 
-
-
-int make_tmp_file(char* path, int token){
-    int fd;//리턴해줄 fd
+int* make_tmp_file(int token, int* file_d)
+{
+    int n_bytes;
     int tmp_fd; //순회하면서 돌 fd
     char user_token[10];
     char buf[MAXLINE]; //유용하게 사용할 버퍼
-    char* path = (char *)malloc(MAXLINE);
-    char* tmp_file_name = (char *)malloc(MAXLINE);
+    char *path = (char *)malloc(MAXLINE);
+    char *tmp_file_name = (char *)malloc(MAXLINE);
     DIR *dir = NULL;
     struct dirent *entry = NULL; //디럭터리에서 파일만 찾을려고 함
+    struct stat info;            //파일의 속성을 파악하기 위한 구조체
 
-    sprintf(user_token, "%d" , token); //int형 user token을 문자열로 변환
-    strcpy(buf, "user");//user
-    strcat(buf, user_token);//user1
-    strcat(buf, "_tmp.lst"); //user1_tmp.lst
-    strcpy(tmp_file_name, buf); //tmp_file_name에 user1_tmp.lst 문자열 저장
-
-    getcwd(buf, MAXLINE);
-    strcat(buf, "/data");// 하위 디렉터리 /data 의 절대경로를 얻음
-    strcat(buf, tmp_file_name);
+    sprintf(user_token, "%d", token); //int형 user token을 문자열로 변환
+    strcpy(buf, "user");              //user
+    strcat(buf, user_token);          //user1
+    strcat(buf, "_tmp.lst");          //user1_tmp.lst
+    strcpy(tmp_file_name, buf);       //tmp_file_name에 user1_tmp.lst 문자열 저장
+    //tmp_file_name == "user1_tmp.lst"
+    getcwd(buf, MAXLINE); //서버코드가 실행중인 경로를 얻음.
+    // /Users/gimsehwan/Desktop/ingkle/studying_C/2020_fall_embeded_os/assignmnet_2
+    strcat(buf, "/data"); // 하위 디렉터리 /data 의 절대경로를 얻음
+    // buf == "/Users/gimsehwan/Desktop/ingkle/studying_C/2020_fall_embeded_os/assignmnet_2/data"
+    // strcat(buf, tmp_file_name);
     strcpy(path, buf); //path에 buf에 담긴 경로 문자열 담아놓음
-
-    fd = open(tmp_file_name, 
-        O_RDWR | O_TRUNC, 
-        S_IRWXU | S_IRWXG |  S_IWGRP |  S_IRWXO);
-    if(fd < 0){
+    strcat(path, "/");
+    strcat(path, tmp_file_name);
+    *(int *)file_d = open(path,
+              O_CREAT | O_RDWR | O_TRUNC, 0644);
+    if (*(int *)file_d < 0)
+    {
         perror("open error");
-        return -1; 
+        return -1;
+    }
+    //다시 ./data 경로를 지정하기 위해서 문자열 처리
+    getcwd(buf, MAXLINE); //서버코드가 실행중인 경로를 얻음.
+    strcat(buf, "/data"); // 하위 디렉터리 /data 의 절대경로를 얻음
+    // strcat(buf, tmp_file_name);
+    strcpy(path, buf); //path에 buf에 담긴 경로 문자열 담아놓음
+    // /Users/gimsehwan/Desktop/ingkle/studying_C/2020_fall_embeded_os/assignmnet_2/data
+    printf("we will open this path %s \n", path);
+    if ((dir = opendir(path)) == NULL)
+    {
+        printf("open dir error \n");
+    }
+    int cnt = 0;
+    chdir(path);
+    while ((entry = readdir(dir)) != NULL)
+    {   
+        printf("%d : %s \n", cnt, entry->d_name);
+        cnt ++;
+        lstat(entry->d_name, &info);
+        printf("this is mode %d \n", (int)info.st_mode);
+        if (S_ISREG(info.st_mode))
+        {
+            printf("try to open %s", entry->d_name);
+            if ((tmp_fd = open(entry->d_name, O_RDWR)) < 0)
+            {
+                perror("open error");
+            }
+            if ((strcmp(entry->d_name, tmp_file_name)) == 0)
+            {   printf("this is my own file so we will pass \n");
+                printf("%s", entry->d_name);
+                continue;
+            }
+            while ((n_bytes = read(tmp_fd, buf, BUFSIZE)) > 0)
+            {
+                if (n_bytes < BUFSIZE)
+                {
+                    buf[n_bytes] = '\0';
+                    write(*(int *)file_d, buf, n_bytes);
+                    break;
+                }
+                write(*(int *)file_d, buf, BUFSIZE);
+            }
+            close(tmp_fd);
+            printf("this is file %s \n", entry->d_name);
+        } 
+        else if (S_ISDIR(info.st_mode))
+        {
+            printf("dir !! ! \n");
+        }
+        else {
+            printf("what's going on ??? \n");
+            printf("else blolck .. %s", entry->d_name);
+        }
     }
     //우선 디렉터리를 연 이후에 또 파일 이름을 만들어야 되네
     //계속해서 진행해보기
-
-
+    free(path);
+    free(tmp_file_name);
+    closedir(dir);
+    return (int *)file_d;
 }
