@@ -3,6 +3,7 @@
 임베디드 운영체제 과목 P2P Server Client Implementaion Source Code
 */
 
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -12,12 +13,17 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <fcntl.h> //open, close 등 파일 디스크립터 사용을 위함
+#include <errno.h>
 #include "common.h" //유저 인증 로직 및 macro 상수
 #include "list_func.h" //내부 파일 리스트를 생성하는 함수
 #include "my_ip.h"     //ip check 함수
 
 #define SERV_IP "127.0.0.1"
 #define SERV_PORT 4140
+#define INIT_STATE 0
+#define AFTER_STATE 1
+
+extern int errno;
 
 //서버와 인증 로직을 수행하기 위한 read, send, scanf 등의 함수를 하나의 flow로 함수화함
 void auth_request(int fd, char *id, char *pw, char *buf)
@@ -32,8 +38,8 @@ void auth_request(int fd, char *id, char *pw, char *buf)
     scanf("%s", pw);
     send(fd, pw, strlen(pw) + 1, 0);
     memset(buf, 0, BUFSIZE);
-}
 
+}
 void send_file(void); //각 클라이언트 별로 파일을 send하는 로직 함수화 필요.
 
 int main(void)
@@ -43,10 +49,14 @@ int main(void)
     int token = 0;
     struct sockaddr_in dest_addr;
     char *buf = (char *)malloc(BUFSIZE);
+    char *msg = (char *)malloc(BUFSIZE);
     char *file_buf = (char *)malloc(BUFSIZE);
     char file_name[512];
     char id[20];
     char pw[20];
+    int state = INIT_STATE;
+    int len = BUFSIZE;
+    ssize_t ret;
 
     sockfd = socket(AF_INET, SOCK_STREAM, 0); //socket fd
 
@@ -73,14 +83,15 @@ int main(void)
     {
         printf("connect ok\n");
     }
+    /////// 초기 접속 시 인증 로직 ///////////////
     auth_request(sockfd, id, pw, buf); //if user 1 success, we will get 1
     read(sockfd, buf, BUFSIZE);
     printf("this is token %d\n", *(int *)&buf[0]);
     token = *(int *)&buf[0];
+    //// 인증 종료 후 사용자의 토큰을 서버로부터 받음 /////////
     if (token == 1)
     { //유저 1 로그인 성공
         printf("login success user%d\n", token);
-        //login success logic here
         mklistf("user1", "127.0.0.1"); //뒤에 인자(ip address)는 my_ip 헤더를 이용할 것.
         //user1_file_list.lst 생성 완료, 이 파일을 서버에 전송해야 함.
         //1. 파일 이름을 먼저 전송한다
@@ -119,6 +130,7 @@ int main(void)
         printf("file send done ! \n");
         free(file_buf);
         close(fd);
+
         //초기화 로직 종료, 메인 로직 실행 필요함 (클라이언트는 명령어를 서버에 전달한다.)
         //명령의 종류 : 파일 리스트 보기 
         // 특정 파일 전송 받기
@@ -129,13 +141,16 @@ int main(void)
         printf("login success user%d\n", token);
         mklistf("user2", "127.0.0.1"); //뒤에 인자(ip address)는 my_ip 헤더를 이용할 것.
         strcpy(file_name, "user2_file_list.lst");
+
         if ((fd = open("user2_file_list.lst", O_RDWR)) < 0)
         {
             perror("open() error !");
         }
+
         send(sockfd, file_name, sizeof(file_name), 0);
         int n_bytes = 0;
         int count = 0;
+
         while ((n_bytes = read(fd, file_buf, BUFSIZE)) > 0)
         {
             if (n_bytes < BUFSIZE)
@@ -154,17 +169,74 @@ int main(void)
     else
     {
         printf("login failed.");
+        exit(1);
     }
+
+
+    ////////////////// 클라이언트 메인 루프 start //////////////
     for(;;){
+
         printf("plz input your command user%d :", token);
+        memset(buf, 0x00, BUFSIZE);
         scanf("%s", buf);
-        send(sockfd, buf, BUFSIZE, 0);
+        if ((send(sockfd, buf, BUFSIZE, 0)) == -1)
+        {
+            perror("send error ! ");
+        }
+        printf("send result : %s", buf);
         read(sockfd, buf, BUFSIZE);
         printf("this msg was sent from server : %s \n", buf);
-        if(strcmp(buf, "exit") ==0){
+
+        if(strcmp(buf, "exit") ==0)
+        {
             printf("connect done !");
             break;
         }
+
+        else if(strcmp(buf, "list")==0)
+        {
+            fputs("wait", stdout);
+            for(int i = 0; i<5; i++){
+                fputs(".",stdout);
+                sleep(1);
+            }
+            fputs("\n", stdout);
+            // 서버와 클라이언트 간 byte stream 파일을 파일 크기를 미리 주고 받지 않더라도
+        //     while((rcv_byte = read(sockfd,buf, BUFSIZE))>0)
+        //     {    
+        //         printf("rcv bytes %d \n", rcv_byte);
+        //         if(rcv_byte > 0)
+        //         {
+        //             if(rcv_byte < BUFSIZE)
+        //             {   //printf("***************** rcv_byte < BUFISZE  ***************** \n");
+        //                 memset(&buf[rcv_byte+1], 0x00, (BUFSIZE - rcv_byte) - 1 );
+        //                 printf("%s", buf);
+        //                 break;
+        //             }
+        //             else 
+        //             {
+        //                 printf("%s", buf);
+        //             }
+        //         }
+        //     }
+        // }
+        // state = 1;
+        //len = BUFSIZE;
+        //     while (len != 0 && (ret = read(sockfd, buf, len)) != 0)
+        //     {   printf("%s", buf);
+        //         if  (ret == -1) {
+        //             if (errno == EINTR)
+        //                 continue;
+        //             perror("read");
+        //             break;
+        //         }
+        //         len -= ret;
+        //         buf += ret;
+        //         printf("recv len %d \n",len);
+        //         printf("%s", buf);
+        //     }
+        //     printf("%s", buf);
+
     }
     close(sockfd);
     free(buf);
