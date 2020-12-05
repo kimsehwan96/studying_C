@@ -3,7 +3,6 @@
 임베디드 운영체제 과목 P2P Server Client Implementaion Source Code
 */
 
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -14,7 +13,7 @@
 #include <arpa/inet.h>
 #include <fcntl.h> //open, close 등 파일 디스크립터 사용을 위함
 #include <errno.h>
-#include "common.h" //유저 인증 로직 및 macro 상수
+#include "common.h"    //유저 인증 로직 및 macro 상수
 #include "list_func.h" //내부 파일 리스트를 생성하는 함수
 #include "my_ip.h"     //ip check 함수
 
@@ -22,6 +21,7 @@
 #define SERV_PORT 4140
 #define INIT_STATE 0
 #define AFTER_STATE 1
+#define SEG 1
 
 extern int errno;
 
@@ -38,19 +38,18 @@ void auth_request(int fd, char *id, char *pw, char *buf)
     scanf("%s", pw);
     send(fd, pw, strlen(pw) + 1, 0);
     memset(buf, 0, BUFSIZE);
-
 }
 void send_file(void); //각 클라이언트 별로 파일을 send하는 로직 함수화 필요.
 
 int main(void)
 {
     int sockfd, fd;
-    int rcv_byte, file_size; 
+    int rcv_byte, file_size;
     int token = 0;
     struct sockaddr_in dest_addr;
     char *buf = (char *)malloc(BUFSIZE);
     char *msg = (char *)malloc(BUFSIZE);
-    char *file_buf = (char *)malloc(BUFSIZE);
+    char *file_buf = (char *)malloc(SEG);
     char file_name[512];
     char id[20];
     char pw[20];
@@ -116,7 +115,7 @@ int main(void)
             따라서, n_bytes만큼 데이터를 송신해야 하며
             buf[n_bytes]의 EOF문자를 NULL로 바꿔주는 로직이 포함 됨.
         */
-        while ((n_bytes = read(fd, file_buf, BUFSIZE)) > 0)
+        while ((n_bytes = read(fd, buf, BUFSIZE)) > 0)
         {
             if (n_bytes < BUFSIZE)
             {
@@ -124,7 +123,7 @@ int main(void)
             }
             count++;
             printf("count : %d n_bytes : %d : this is sended : %s ", count, n_bytes, file_buf);
-            send(sockfd, file_buf, n_bytes, 0);
+            send(sockfd, buf, n_bytes, 0);
         }
 
         printf("file send done ! \n");
@@ -132,7 +131,7 @@ int main(void)
         close(fd);
 
         //초기화 로직 종료, 메인 로직 실행 필요함 (클라이언트는 명령어를 서버에 전달한다.)
-        //명령의 종류 : 파일 리스트 보기 
+        //명령의 종류 : 파일 리스트 보기
         // 특정 파일 전송 받기
         // 종료하기
     }
@@ -172,11 +171,11 @@ int main(void)
         exit(1);
     }
 
-
     ////////////////// 클라이언트 메인 루프 start //////////////
-    for(;;){
+    for (;;)
+    {
 
-        printf("plz input your command user%d :", token);
+        printf("\nplz input your command user%d :", token);
         memset(buf, 0x00, BUFSIZE);
         scanf("%s", buf);
         if ((send(sockfd, buf, BUFSIZE, 0)) == -1)
@@ -187,53 +186,27 @@ int main(void)
         read(sockfd, buf, BUFSIZE);
         printf("this msg was sent from server : %s \n", buf);
 
-        if(strcmp(buf, "exit") ==0)
+        if (strcmp(buf, "exit") == 0)
         {
             printf("connect done !");
             break;
         }
 
-        else if(strcmp(buf, "list")==0)
+        else if (strcmp(buf, "list") == 0)
         {
             fputs("wait", stdout);
-            for(int i = 0; i<5; i++){
-                fputs(".",stdout);
+            for (int i = 0; i < 5; i++)
+            {
+                fputs(".", stdout);
                 sleep(1);
             }
             fputs("\n", stdout);
-            while((rcv_byte = read(sockfd,buf, BUFSIZE))>0)
-            {    
-                printf(" rcv bytes %d \n", rcv_byte);
-                    if(rcv_byte < BUFSIZE)
-                    {   //printf("***************** rcv_byte < BUFISZE  ***************** \n");
-                        memset(&buf[rcv_byte+1], 0x00, (BUFSIZE - rcv_byte) - 1 );
-                        printf("%s", buf);
-                        memset(buf, 0x00, BUFSIZE);
-                        break;
-                    }
-                    else 
-                    {
-                        printf("%s", buf);
-                    }
+            while((rcv_byte = read(sockfd, file_buf, SEG)) > 0){
+                printf("%s", file_buf);
             }
-        }
-        state = 1;
-        //len = BUFSIZE;
-        //     while (len != 0 && (ret = read(sockfd, buf, len)) != 0)
-        //     {   printf("%s", buf);
-        //         if  (ret == -1) {
-        //             if (errno == EINTR)
-        //                 continue;
-        //             perror("read");
-        //             break;
-        //         }
-        //         len -= ret;
-        //         buf += ret;
-        //         printf("recv len %d \n",len);
-        //         printf("%s", buf);
-        //     }
-        //     printf("%s", buf);
 
+            state = 1;
+        }
     }
     close(sockfd);
     free(buf);

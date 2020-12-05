@@ -22,6 +22,7 @@
 #define USER2_LOGIN 2
 #define LOGIN_FAIL 0
 #define BUFSIZE 512
+#define FILESIZE 65536
 
 // 유저의 인증로직을 위한 함수.
 unsigned int authenticate(int fd, char *id, char *pw)

@@ -54,10 +54,12 @@ int main()
     int rcv_byte;
     char *buf = (char *)malloc(BUFSIZE);
     char *tmp_file_name = (char *)malloc(BUFSIZE);
+    char *file_buf = (char *)malloc(FILESIZE);
     char id[20];
     char pw[20];
     char msg[512];
     int rb = 0;
+    int len = 65536;
 
     int val = 1;
     int state = INIT_STATE;
@@ -127,7 +129,7 @@ int main()
         printf("Connection accept from %s\n", inet_ntoa(their_addr.sin_addr));
 
         if ((childpid = fork()) == 0)
-        { //child process
+        {                  //child process
             close(sockfd); //더이상 필요하지 않을때 (프로그램 서버측 종료시에) 종료하는게 맞음
             for (;;)
             {
@@ -160,6 +162,7 @@ int main()
                             break;
                         }
                     }
+
                     //파일 수신이 끝난 뒤 파일 기술자 닫음.
                     //파일 수신 이후 main loop 진입 필요
                     //사용자가 파일 목록을 요청하면
@@ -194,42 +197,26 @@ int main()
                                 printf("error occured on server.");
                                 send(new_fd, "exit", BUFSIZE, 0); //for exit client
                             }
+                            memset(buf, 0, BUFSIZE);
                             strcpy(buf, "list"); //list 파일을 보내줄것이라고 이야기 해주기.
                             send(new_fd, buf, BUFSIZE, 0);
                             strcpy(tmp_file_name, "user1_tmp.lst");
                             fd = open(tmp_file_name, O_RDONLY);
-                            while ((n_bytes = read(fd, buf, BUFSIZE)) > 0)
+                            while ((n_bytes = read(fd, buf, 1)) > 0)
                             {
-                                if (n_bytes < BUFSIZE)
-                                {
-                                    printf("inner : serve send %d bytes !! \n", n_bytes);
-                                    //buf[n_bytes + 1] = '\0';
-                                    //memset(&buf[n_bytes + 2], 0x00, BUFSIZE - n_bytes - 1);
-                                    send(new_fd, buf, n_bytes, 0);
-                                    //printf("*********** sended : %s", buf);
-                                    memset(buf, 0x00 , BUFSIZE);
-                                    break;
-                                }
-                                printf("outer : server send %d bytes !! \n ", n_bytes);
-                                //printf("outer of n bytes *** %s", buf);
-                                send(new_fd, buf, BUFSIZE, 0);
+                                send(new_fd, buf, 1, 0);
                             }
-                            // int len = BUFSIZE;
-                            // while(len != 0 && (ret = read(fd, buf, BUFSIZE)) != 0){
-                            //     if (ret == -1){
-                            //         if (errno == EINTR)
-                            //             continue;
-                            //         perror("write");
-                            //         break;
-                            //     }
-                            //     len -= ret;
-                            //     buf += ret;
-                            //     send(new_fd, buf, ret, 0);
-                            // }
-
+                            shutdown(new_fd, SHUT_WR);
                             printf("server send done !! \n");
                             state = 1;
                             close(fd);
+                            continue;
+                        }
+                        else if (strcmp("hello", buf) == 0){
+                            printf("got hello from client \n");
+                            strcpy(buf, "hello !!");
+                            send(new_fd, buf, BUFSIZE, 0);
+                            continue;
                         }
 
                         else
@@ -254,10 +241,18 @@ int main()
                     int fd = 0;
                     fd = open(server_file_path, O_CREAT | O_RDWR | O_TRUNC, 0644); //읽기쓰기 및 덮어쓰기, 실행권한
                     int n_bytes = 0;
-                    while ((n_bytes = read(new_fd, buf, BUFSIZE)) > 0)
+                    while (len != 0 && (ret = read(new_fd, buf, len)) != 0)
                     {
-                        write(fd, buf, n_bytes);
-                        printf("%s was receive\n n_bytes : %d ", buf, n_bytes);
+                        write(fd, buf, ret);
+                        if (ret == -1)
+                        {
+                            if (errno == EINTR)
+                                continue;
+                            perror("read");
+                            break;
+                        }
+                        len -= ret;
+                        buf += ret;
                     }
                     printf("file receive done. \n");
                     memset(buf, 0, BUFSIZE); // buffer reset !
@@ -288,7 +283,9 @@ int make_tmp_file(int token)
     char user_token[10];
     char buf[BUFSIZE]; //유용하게 사용할 버퍼
     char *path = (char *)malloc(BUFSIZE);
+    memset(path, 0x00, BUFSIZE);
     char *tmp_file_name = (char *)malloc(BUFSIZE);
+    memset(tmp_file_name, 0x00, BUFSIZE);
     DIR *dir = NULL;
     struct dirent *entry = NULL; //디럭터리에서 파일만 찾을려고 함
     struct stat info;            //파일의 속성을 파악하기 위한 구조체
@@ -300,6 +297,7 @@ int make_tmp_file(int token)
     strcpy(tmp_file_name, buf);       //tmp_file_name에 user1_tmp.lst 문자열 저장
     //tmp_file_name == "user1_tmp.lst"
     getcwd(buf, BUFSIZE); //서버코드가 실행중인 경로를 얻음.
+    chdir(buf);
     // /Users/gimsehwan/Desktop/ingkle/studying_C/2020_fall_embeded_os/assignmnet_2
     strcat(buf, "/data"); // 하위 디렉터리 /data 의 절대경로를 얻음
     // buf == "/Users/gimsehwan/Desktop/ingkle/studying_C/2020_fall_embeded_os/assignmnet_2/data"
@@ -311,7 +309,7 @@ int make_tmp_file(int token)
               O_CREAT | O_RDWR | O_TRUNC, 0644);
     if (fd < 0)
     {
-        perror("open error");
+        perror("open error fd");
         return -1;
     }
     //다시 ./data 경로를 지정하기 위해서 문자열 처리
@@ -333,7 +331,7 @@ int make_tmp_file(int token)
         {
             if ((tmp_fd = open(entry->d_name, O_RDWR)) < 0)
             {
-                perror("open error");
+                perror("open error tmp_fd");
             }
             if ((strcmp(entry->d_name, tmp_file_name)) == 0)
             {
@@ -358,5 +356,6 @@ int make_tmp_file(int token)
     free(tmp_file_name);
     closedir(dir);
     close(fd);
+    close(tmp_fd);
     return 1;
 }
