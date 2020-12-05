@@ -201,26 +201,23 @@ int main(void)
                 sleep(1);
             }
             fputs("\n", stdout);
-            // 서버와 클라이언트 간 byte stream 파일을 파일 크기를 미리 주고 받지 않더라도
-        //     while((rcv_byte = read(sockfd,buf, BUFSIZE))>0)
-        //     {    
-        //         printf("rcv bytes %d \n", rcv_byte);
-        //         if(rcv_byte > 0)
-        //         {
-        //             if(rcv_byte < BUFSIZE)
-        //             {   //printf("***************** rcv_byte < BUFISZE  ***************** \n");
-        //                 memset(&buf[rcv_byte+1], 0x00, (BUFSIZE - rcv_byte) - 1 );
-        //                 printf("%s", buf);
-        //                 break;
-        //             }
-        //             else 
-        //             {
-        //                 printf("%s", buf);
-        //             }
-        //         }
-        //     }
-        // }
-        // state = 1;
+            while((rcv_byte = read(sockfd,buf, BUFSIZE))>0)
+            {    
+                printf(" rcv bytes %d \n", rcv_byte);
+                    if(rcv_byte < BUFSIZE)
+                    {   //printf("***************** rcv_byte < BUFISZE  ***************** \n");
+                        memset(&buf[rcv_byte+1], 0x00, (BUFSIZE - rcv_byte) - 1 );
+                        printf("%s", buf);
+                        memset(buf, 0x00, BUFSIZE);
+                        break;
+                    }
+                    else 
+                    {
+                        printf("%s", buf);
+                    }
+            }
+        }
+        state = 1;
         //len = BUFSIZE;
         //     while (len != 0 && (ret = read(sockfd, buf, len)) != 0)
         //     {   printf("%s", buf);

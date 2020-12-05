@@ -26,8 +26,8 @@ void mklistf(const char *username, const char *ipinfo)
     struct stat info;
     getcwd(cwd, 1024);
     //for making list information file
-    strcpy(filename, username);
-    strcat(filename, LIST_FILE_NAME); //to make USER1_file_list.lst
+    strcpy(filename, username);//user1
+    strcat(filename, LIST_FILE_NAME); //user1_file_list.lst
     fp = fopen(filename, "w+");       //with overwriting mode
     if ((dir = opendir(cwd)) == NULL)
     {
@@ -38,23 +38,23 @@ void mklistf(const char *username, const char *ipinfo)
 
     {
         lstat(entry->d_name, &info);
-        if (S_ISREG(info.st_mode))
+        if (S_ISREG(info.st_mode)) //파일일때
         {
             printf("FILE : %s\n", entry->d_name);
-            strcat(buf, username);
-            strcat(buf, " ");
-            strcat(buf, ipinfo);
-            strcat(buf, " ");
-            strcat(buf, entry->d_name);
+            strcat(buf, username); // buf -> user1
+            strcat(buf, " "); // buf -> user1 
+            strcat(buf, ipinfo); // buf -> user1 192.168.0.1
+            strcat(buf, " "); //
+            strcat(buf, entry->d_name);//user1 192.168.0.1 fileName
             strcat(buf, "\n");
             fputs(buf, fp);
             memset(buf, 0, 100);
         }
-        else if (S_ISDIR(info.st_mode))
+        else if (S_ISDIR(info.st_mode)) // 디렉토리(폴더)일때
         {
             printf("DIR : %s\n", entry->d_name);
         }
-        else
+        else //X
         {
             printf("this is not a file or directory !\n");
         }

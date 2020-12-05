@@ -21,7 +21,6 @@
 #define USER1_LOGIN 1
 #define USER2_LOGIN 2
 #define LOGIN_FAIL 0
-#define REQUEST_LIST_MSG "request list"
 #define BUFSIZE 512
 
 // 유저의 인증로직을 위한 함수.
@@ -64,8 +63,3 @@ unsigned int authenticate(int fd, char *id, char *pw)
     else
         return LOGIN_FAIL;
 }
-
-//클라이언트는 서버에게 lst 파일을 보내줘야 함.
-unsigned int client_process();
-// 유저의 id와 passwd를 인자로 받아, 사전 정의된 유저 정보에 대해서만 처리
-// 더 좋은 방법이 있을 것 같지만 이번 과제에서는 이렇게 처리할 예정,

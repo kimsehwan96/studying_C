@@ -57,6 +57,7 @@ int main()
     char id[20];
     char pw[20];
     char msg[512];
+    int rb = 0;
 
     int val = 1;
     int state = INIT_STATE;
@@ -127,7 +128,7 @@ int main()
 
         if ((childpid = fork()) == 0)
         { //child process
-            //close(sockfd); 더이상 필요하지 않을때 (프로그램 서버측 종료시에) 종료하는게 맞음
+            close(sockfd); //더이상 필요하지 않을때 (프로그램 서버측 종료시에) 종료하는게 맞음
             for (;;)
             {
                 printf("accept ok \n");
@@ -168,15 +169,7 @@ int main()
                     //메인 로직, 클라이언트로부터 명령어를 전달받아 다양한 로직을 수행함.
                     for (;;)
                     {
-                        if (state == 1)
-                        {
-                            read(sockfd, buf, BUFSIZE);
-                            printf("what the hell... %s", buf);
-                        }
-                        int rb = 0;
                         memset(buf, 0x00, BUFSIZE);
-                        printf("server is wating for client's command.....\n");
-
                         if ((rb = (read(new_fd, buf, BUFSIZE))) == -1)
                         {
                             perror("read error ! "); //지금 connection reset by peer 발생함
@@ -205,23 +198,22 @@ int main()
                             send(new_fd, buf, BUFSIZE, 0);
                             strcpy(tmp_file_name, "user1_tmp.lst");
                             fd = open(tmp_file_name, O_RDONLY);
-                            // 서버와 클라이언트 간 byte stream 파일을 파일 크기를 미리 주고 받지 않더라도
-                            // 전송, 수신을 올바르게 하는 방법을 찾아보자 ㅠ ㅠ
-                            // while ((n_bytes = read(fd, buf, BUFSIZE)) > 0)
-                            // {
-                            //     if (n_bytes < BUFSIZE)
-                            //     {
-                            //         printf("inner : serve send %d bytes !! \n", n_bytes);
-                            //         buf[n_bytes + 1] = '\0';
-                            //         memset(&buf[n_bytes + 2], 0x00, BUFSIZE - n_bytes - 1);
-                            //         send(new_fd, buf, BUFSIZE, 0);
-                            //         //printf("*********** sended : %s", buf);
-                            //         break;
-                            //     }
-                            //     printf("outer : server send %d bytes !! \n ", n_bytes);
-                            //     //printf("outer of n bytes *** %s", buf);
-                            //     send(new_fd, buf, BUFSIZE, 0);
-                            // }
+                            while ((n_bytes = read(fd, buf, BUFSIZE)) > 0)
+                            {
+                                if (n_bytes < BUFSIZE)
+                                {
+                                    printf("inner : serve send %d bytes !! \n", n_bytes);
+                                    //buf[n_bytes + 1] = '\0';
+                                    //memset(&buf[n_bytes + 2], 0x00, BUFSIZE - n_bytes - 1);
+                                    send(new_fd, buf, n_bytes, 0);
+                                    //printf("*********** sended : %s", buf);
+                                    memset(buf, 0x00 , BUFSIZE);
+                                    break;
+                                }
+                                printf("outer : server send %d bytes !! \n ", n_bytes);
+                                //printf("outer of n bytes *** %s", buf);
+                                send(new_fd, buf, BUFSIZE, 0);
+                            }
                             // int len = BUFSIZE;
                             // while(len != 0 && (ret = read(fd, buf, BUFSIZE)) != 0){
                             //     if (ret == -1){
