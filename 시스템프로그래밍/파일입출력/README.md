@@ -474,3 +474,48 @@ struct pollfd {
 
 - POLLIN | POLLPRI 는 select에서의 읽기 이벤트와 동일하며
 - POLLOUT | POLLWRBAND는 select에서의 쓰기 이벤트와 동일하다.
+
+```c
+#include <stdio.h>
+#include <unistd.h>
+#include <poll.h>
+#define TIMEOUT  5 /* 타임아웃 초 */
+
+int main(void) {
+    struct pollfd fds[2];
+    int ret;
+    /* 표준 입력에 대한 이벤트 감시를 위한 준비 */
+    fds[0].fd = STDIN_FILENO;
+    fds[0].events = POLLIN;
+    /* 표준 출력에 대한 이벤트 감시를 위한 준비 거의 항상 참이다. */
+    fds[1].fd = STDOUT_FILENO;
+    fds[1].events = POLLOUT;
+    /* 준비 끝, 블록 시작 */
+    ret = poll(fds, 2, TIMEOUT * 1000);
+    if (ret == -1) {
+        perror("poll");
+        return 1;
+    }
+
+    if(!ret) {
+        printf("%d seconds elapsed \n", TIMEOUT);
+        return 0;
+    }
+
+    if (fds[0].revents & POLLIN)
+        printf("stdin readable \n");
+    if (fds[1].revents & POLLOUT)
+        printf("stdout is writable \n");
+
+        return 0;
+}
+```
+
+
+- 다중 입출력이 의미 있을 때는? 
+    - 하나의 스레드(메인이 되었든 서브 스레드가 되었든)에서
+        - 여러 파일 디스크립터에 대해서 파일 입출력을 해야 할 때 필요한거다.
+        - 예를들어 A,B,C,D 네개의 파일 디스크립터에 대해 읽고 쓰는 작업을 할건데,
+        - A 작업을 하다가 (read) 블록이 되어버렸다.
+        - 근디 B에서 데이터가 들어와서 읽을라고 하는데 A가 무한정 기다리는 경우가 생길 수 있다.
+        - 그니까 하나의 스레드가 여러 파일에 대해서 읽고 쓰기 작업을 해야 할 때 필요한 것 !
