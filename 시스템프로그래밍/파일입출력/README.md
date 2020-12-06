@@ -365,3 +365,112 @@ FD_CLR(fd, &writefds);
 if (FD_ISSET(fd, &readfds))
     /* fd에서 즉시 값을 읽을 수 있다 */
 ```
+
+
+### select() 예제 
+- 이 예제는 5초동안 stdin으로 들어온 입력을 기다리며 블록된다.
+- 파일 디스크립터 하나만 감시하므로 실제로 다중 입출력을 수행하진 않음
+
+```c
+#include <stdio.h>
+#include <sys/time.h>
+#include <sys/types.h>
+#include <unistd.h>
+
+#define TIMEOUT 5 /* 타임아웃 (초) */
+#define BUF_LEN 1024 /* 읽기 버퍼 사이즈 (바이트) */
+
+int main(void) {
+    struct timeval tv;
+    fd_set readfds;
+    int ret;
+
+    /* 표준 입력에서 입력을 기다리기 위한 준비*/
+    FD_ZERO(&readfds);
+    FD_SET(STDIN_FILENO, &readfds);
+
+    /* select가 5초 기다리도록 timeval 구조체 설정 */
+    tv.tv_sec = TIMEOUT;
+    tv.tv_usec = 0;
+
+    /* 입력 기다리기 */
+    ret = select(STDIN_FILENO + 1, &readfds, NULL, NULL, &tv);
+    if(ret == -1) {
+        perror("select");
+        return 1;
+    } else if (!ret) {
+        printf("%d seconds elapsed \n", TIMEOUT);
+        return 0;
+    }
+
+    /* 
+    * 여기까지 오면 select가 0이 아닌 양수를 반환 했다는 의미로, 파일디스크립터에서 읽기 가능
+    */
+
+   if (FD_ISSET(STDIN_FILENO, &readfds)) {
+       char  buf[BUF_LEN+1];
+       int len;
+
+       /*
+            여기서는    read() 블록되지 않는다,
+       */
+      len = read(STDIN_FILENO, buf, BUF_LEN);
+      if(len==-1) {
+          perror("read");
+          return 1;
+      }
+      if(len){
+          buf[len] = '\0';
+          printf("read : %s\n", buf);
+      }
+      return 0;
+   }
+
+}
+```
+
+
+### poll 예제
+
+- poll 시스템 콜은 시스템 V에서 제공하는 다중 입출력 방식.
+
+```c
+#include <poll.h>
+int poll(struct pollfd *fds, nfds_t nfds, int timeout);
+```
+
+- select와 달리, poll은 fds가 가리키는 단일 pollfd 구조체 배열을 nfds 개수만큼 사용한다.
+
+```c
+#include <poll.h>
+
+struct pollfd {
+    int fd; //감시할 파일 디스크립터
+    short events; //감시할 이벤트
+    short revents; // 발생한 이벤트
+};
+```
+
+- 각 pollfd 구조체는 감시하고자 하는 단일 파일디스크립터를 명시한다.
+- events 필드는 그 파일 디스크립터에서 감시할 이벤트의 비트 마스크이다.
+- events 필드에서 요청한 모든 이벤트가 revents에 담겨서 반환 될 수도 있다.
+
+- 설정 가능한 이벤트 목록
+    1. POLLIN : 읽을 데이터가 존재한다.
+    2. POLLRDNORM : 일반 데이터를 읽을 수 있다.
+    3. POLLDBAND : 우선권이 있는 데이터를 읽을 수 있다.
+    4. POLLPRIO : 시급히 읽을 데이터가 있다.
+    5. POLLOUT : 쓰기가 블록되지 않을 것이다.
+    6. POLLWRNORM : 일반 쓰기 데이터가 블록되지 않을 것이다.
+    7. POLLWRBAND : 우선권이 있는 데이터 쓰기가 블록되지 않을 것이다.
+    8. POLLMSG : SIGPOLL 메시지가 사용 가능하다.
+
+- revents
+    1. POLLER : 주어진 파일 디스크립터에 에러가 있다.
+    2. POOLHUP : 주어진 파일디스크립터에서 이벤트가 지체되고 있다.
+    3. POLLNVAL : 주어진 파일 디스크립터가 유효하지 않다.
+
+- 이 이벤트는 events 필드에서는 읨미가 없으며, 해당하는 경우에만 반환되는 값이므로 events에서 넘겨서도 안된다.
+
+- POLLIN | POLLPRI 는 select에서의 읽기 이벤트와 동일하며
+- POLLOUT | POLLWRBAND는 select에서의 쓰기 이벤트와 동일하다.
