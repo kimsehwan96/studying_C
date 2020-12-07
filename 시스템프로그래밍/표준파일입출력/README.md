@@ -85,7 +85,7 @@ int main(void){
     while(!feof(readfp)){
         fgets(buf, BUF_SIZE, readfp);
         fputs(buf, fp);
-        fflush(fp); //출력 버퍼에 있는 데이터를 소켓의 출력 버퍼로 즉시 내보냄
+        fflush(fp); //출력 버퍼에 있는 데이터를 열어놓은 파일로 바로 밀어버림.
     }
 
     fclose(readfp);
