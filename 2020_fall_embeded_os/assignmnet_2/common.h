@@ -100,6 +100,10 @@ void send_file(FILE *fp, int sockfd)
         printf("%d : %s  <---- sended \n", cnt, data);
         bzero(data, BUFSIZE);
     }
+    strcpy(data, "DATSD"); //DATSD는 전송 완료되었음을 명시하기 위해서 사용
+    //보안에 취약점이 있지만 그냥 쓰자.
+    send(sockfd, data, sizeof(data), 0);
+    return ;
 }
 
 
@@ -136,14 +140,22 @@ void write_file_to_fd(int sockfd, int fd)
     char buffer[BUFSIZE];
     int cnt = 0;
 
-    fp = fdopen(fd, "w+");
+    fp = fdopen(fd, "w");
+    if(fp==NULL){
+        perror("open");
+    }
     
     while (1)
     {   
         cnt ++;
-        n = recv(sockfd, buffer, BUFSIZE, 0);
+        n = recv(sockfd, buffer, BUFSIZE, 0); //마지막에 EOF를 던져주지 않으면 블로킹 당함.
         if (n <= 0) 
         {        
+            break;
+            return;
+        }
+        if ((strcmp(buffer, "DATSD")) == 0) {
+            printf("file recv done!\n");
             break;
             return;
         }
@@ -151,6 +163,7 @@ void write_file_to_fd(int sockfd, int fd)
         fprintf(fp, "%s", buffer);
         bzero(buffer, BUFSIZE);
     }
+    fclose(fp);
     return;
 }
 
@@ -163,6 +176,11 @@ void print_recv_file(int sockfd)
         n = recv(sockfd, buffer, BUFSIZE, 0);
         if (n <= 0)
         {
+            break;
+            return;
+        }
+        if ((strcmp(buffer, "DATSD")) == 0) {
+            printf("file recv done!\n");
             break;
             return;
         }
