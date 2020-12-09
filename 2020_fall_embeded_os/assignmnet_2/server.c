@@ -29,7 +29,6 @@
 #define INIT_STATE 0
 #define AFTER_STATE 1
 
-void recv_file(void); //각 클라이언트로부터 파일을 recv 하는 로직 함수화 필요
 int make_tmp_file(int token);
 //lst 파일들이 있는 경로를 입력받고
 //해당 경로에있는 모든 lst 파일을 순회하면서
@@ -54,7 +53,6 @@ int main()
     int rcv_byte;
     char *buf = (char *)malloc(BUFSIZE);
     char *tmp_file_name = (char *)malloc(BUFSIZE);
-    char *file_buf = (char *)malloc(FILESIZE);
     char id[20];
     char pw[20];
     char msg[512];
@@ -64,7 +62,6 @@ int main()
     int val = 1;
     int state = INIT_STATE;
 
-    ssize_t ret, nr;
 
     //socket TCP file descirptor
     //check sockfd condition
@@ -130,10 +127,11 @@ int main()
 
         if ((childpid = fork()) == 0)
         {                  //child process
-            close(sockfd); //더이상 필요하지 않을때 (프로그램 서버측 종료시에) 종료하는게 맞음
+            //close(sockfd); //더이상 필요하지 않을때 (프로그램 서버측 종료시에) 종료하는게 맞음
             for (;;)
             {
                 printf("accept ok \n");
+                //표준 입출력 함수 사용을 위한 입력, 출력 스트림 생성
                 int token = 0;
                 token = authenticate(new_fd, id, pw);
                 if (token == USER1_LOGIN)
@@ -143,41 +141,22 @@ int main()
                     send(new_fd, buf, sizeof(buf), 0);
                     //1이라는 정수를 전송해서 user1 로그인이 성공했음을 클라이언트에게 알림
                     //이제 파일을 전송받기위해 대기.
+                     //먼저 이 때 클라이언트가 파일 이름을 보내줄 것
                     read(new_fd, file_name, BUFSIZE);
-                    printf("client will sent this file %s \n", file_name);         //먼저 이 때 클라이언트가 파일 이름을 보내줄 것
+                    printf("client will sent this file %s \n", file_name);
                     strcat(server_file_path, file_name);                           //server_user1_file_list.lst 라는 이름으로 파일 관리.
                     int fd = 0;                                                    //fd를 열어놓음
                     fd = open(server_file_path, O_CREAT | O_RDWR | O_TRUNC, 0644); //읽기쓰기 및 덮어쓰기, 실행권한
                     //기존에 user의 파일이 있을경우 업데이트를 위해 항상 접속하면 새로 작성한다.
                     //파일 수신 로직
-                    int n_bytes = 0;
-                    while ((n_bytes = read(new_fd, buf, BUFSIZE)) > 0)
-                    {
-                        write(fd, buf, n_bytes);
-                        printf("%s was receive\n n_bytes : %d ", buf, n_bytes);
-                        if (n_bytes < BUFSIZE)
-                        {
-                            printf("file receive done. \n");
-                            close(fd);
-                            break;
-                        }
-                    }
+                    write_file_to_fd(new_fd, fd); //파일 수신
+                    
 
-                    //파일 수신이 끝난 뒤 파일 기술자 닫음.
-                    //파일 수신 이후 main loop 진입 필요
-                    //사용자가 파일 목록을 요청하면
-                    //임시파일로서 특정 디렉터리에 있는 파일들을 조합하고
-                    //그 데이터를 사용자에게 전송해준 이후에 삭제하는 로직이 필요 할 듯.
-                    close(fd);
-                    //메인 로직, 클라이언트로부터 명령어를 전달받아 다양한 로직을 수행함.
                     for (;;)
-                    {
+                    {   
+                        printf("waiting for client's command \n");
                         memset(buf, 0x00, BUFSIZE);
-                        if ((rb = (read(new_fd, buf, BUFSIZE))) == -1)
-                        {
-                            perror("read error ! "); //지금 connection reset by peer 발생함
-                        }
-
+                        read(new_fd, buf, BUFSIZE);
                         printf("client send this command %s and length %d \n", buf, rb);
 
                         if (strcmp("exit", buf) == 0)
@@ -200,16 +179,12 @@ int main()
                             memset(buf, 0, BUFSIZE);
                             strcpy(buf, "list"); //list 파일을 보내줄것이라고 이야기 해주기.
                             send(new_fd, buf, BUFSIZE, 0);
+
                             strcpy(tmp_file_name, "user1_tmp.lst");
-                            fd = open(tmp_file_name, O_RDONLY);
-                            while ((n_bytes = read(fd, buf, 1)) > 0)
-                            {
-                                send(new_fd, buf, 1, 0);
-                            }
-                            shutdown(new_fd, SHUT_WR);
+                            FILE *server_list_file = fopen(tmp_file_name, "r+");
+                            send_file(server_list_file, new_fd);
                             printf("server send done !! \n");
-                            state = 1;
-                            close(fd);
+                            fclose(server_list_file);
                             continue;
                         }
                         else if (strcmp("hello", buf) == 0){
@@ -232,32 +207,7 @@ int main()
                 }
                 else if (token == USER2_LOGIN)
                 {
-                    memset(buf, 0, BUFSIZE);
-                    *(int *)&buf[0] = token; //user2 인증 성공 정보를 보내기 위함
-                    send(new_fd, buf, sizeof(buf), 0);
-                    read(new_fd, file_name, BUFSIZE);
-                    printf("client will sent this file %s \n", file_name);
-                    strcat(server_file_path, file_name);
-                    int fd = 0;
-                    fd = open(server_file_path, O_CREAT | O_RDWR | O_TRUNC, 0644); //읽기쓰기 및 덮어쓰기, 실행권한
-                    int n_bytes = 0;
-                    while (len != 0 && (ret = read(new_fd, buf, len)) != 0)
-                    {
-                        write(fd, buf, ret);
-                        if (ret == -1)
-                        {
-                            if (errno == EINTR)
-                                continue;
-                            perror("read");
-                            break;
-                        }
-                        len -= ret;
-                        buf += ret;
-                    }
-                    printf("file receive done. \n");
-                    memset(buf, 0, BUFSIZE); // buffer reset !
-                    close(new_fd);
-                    close(fd);
+                   
                     break;
                 }
                 else

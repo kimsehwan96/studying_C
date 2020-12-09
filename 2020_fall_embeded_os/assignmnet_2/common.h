@@ -22,7 +22,6 @@
 #define USER2_LOGIN 2
 #define LOGIN_FAIL 0
 #define BUFSIZE 512
-#define FILESIZE 65536
 
 // 유저의 인증로직을 위한 함수.
 unsigned int authenticate(int fd, char *id, char *pw)
@@ -63,4 +62,112 @@ unsigned int authenticate(int fd, char *id, char *pw)
     }
     else
         return LOGIN_FAIL;
+}
+
+// 파일 포인터를 입력받아서 파일의 사이즈를 리턴하는 함수
+
+int get_file_size(FILE *stream)
+{
+    int fd, pos;
+    if ((fd = fileno(stream)) < 0)
+    {
+        perror("fileno");
+        return -1; //error intger return
+    }
+    //파일 오프셋을 0으로 설정
+    lseek(fd, 0, SEEK_SET);
+    //파일 오프셋을 파일의 끝으로 설정하고 크기 받아오기
+    pos = lseek(fd, 0, SEEK_END);
+    //다시 0으로
+    lseek(fd, 0, SEEK_SET);
+    return pos;
+}
+
+//파일 송신 / 수신 함수
+
+void send_file(FILE *fp, int sockfd)
+{
+    int n;
+    char data[BUFSIZE] = {0};
+    int cnt = 0;
+    while (fgets(data, BUFSIZE, fp) != NULL)
+    {   cnt++;
+        if (send(sockfd, data, sizeof(data), 0) == -1)
+        {
+            perror("[-]Error in sending file.");
+            exit(1);
+        }
+        printf("%d : %s  <---- sended \n", cnt, data);
+        bzero(data, BUFSIZE);
+    }
+}
+
+
+
+void write_file(int sockfd, char *store_name)
+{
+    int n;
+    FILE *fp;
+    char buffer[BUFSIZE];
+    int cnt = 0;
+
+    fp = fopen(store_name, "w+");
+    printf("will write file as %s \n", store_name);
+    while (1)
+    {   cnt ++;
+        n = recv(sockfd, buffer, BUFSIZE, 0);
+        if (n <= 0)
+        {   
+            break;
+            return;
+        }
+        printf("%d : %s <----- recved \n", cnt, buffer);
+        fprintf(fp, "%s", buffer);
+        bzero(buffer, BUFSIZE);
+    }
+    fclose(fp);
+    return;
+}
+
+void write_file_to_fd(int sockfd, int fd)
+{
+    int n;
+    FILE *fp;
+    char buffer[BUFSIZE];
+    int cnt = 0;
+
+    fp = fdopen(fd, "w+");
+    
+    while (1)
+    {   
+        cnt ++;
+        n = recv(sockfd, buffer, BUFSIZE, 0);
+        if (n <= 0) 
+        {        
+            break;
+            return;
+        }
+        printf("%d : %s <----- recv \n",cnt, buffer);
+        fprintf(fp, "%s", buffer);
+        bzero(buffer, BUFSIZE);
+    }
+    return;
+}
+
+void print_recv_file(int sockfd)
+{
+    int n;
+    char buffer[BUFSIZE];
+    while (1)
+    {
+        n = recv(sockfd, buffer, BUFSIZE, 0);
+        if (n <= 0)
+        {
+            break;
+            return;
+        }
+        printf("%s", buffer);
+        bzero(buffer, BUFSIZE);
+    }
+    return;
 }
