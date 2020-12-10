@@ -9,6 +9,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/socket.h>
 
 #define INIT_MSG "===================\n Hi this is p2p test plz login\n ===============\n"
 #define ID_REQ "input id : "
@@ -22,6 +24,8 @@
 #define USER2_LOGIN 2
 #define LOGIN_FAIL 0
 #define BUFSIZE 512
+#define USER1_FTP_PORT 4141 //FTP를 위한 포트 번호
+#define USER2_FTP_PORT 4142 //FTP를 위한 포트 번호
 
 // 유저의 인증로직을 위한 함수.
 unsigned int authenticate(int fd, char *id, char *pw)
@@ -92,7 +96,7 @@ void send_file(FILE *fp, int sockfd)
     int cnt = 0;
     while (fgets(data, BUFSIZE, fp) != NULL)
     {   cnt++;
-        if (send(sockfd, data, sizeof(data), 0) == -1)
+        if (send(sockfd, data, BUFSIZE, 0) == -1)
         {
             perror("[-]Error in sending file.");
             exit(1);
@@ -102,12 +106,12 @@ void send_file(FILE *fp, int sockfd)
     }
     cnt++;
     bzero(data, BUFSIZE);
-    strcpy(data, "DATSD"); //DATSD는 전송 완료되었음을 명시하기 위해서 사용
-    printf("%d : %s \n",cnt,  data);
+    strncpy(data, "DATSD", 5); //DATSD는 전송 완료되었음을 명시하기 위해서 사용
+    printf("%d : %s \n", cnt, data);
     //보안에 취약점이 있지만 그냥 쓰자.
-    send(sockfd, data, sizeof(data), 0);
+    send(sockfd, data, BUFSIZE, 0);
     return ;
-}
+} 
 
 
 
@@ -122,7 +126,7 @@ void write_file(int sockfd, char *store_name)
     printf("will write file as %s \n", store_name);
     while (1)
     {   cnt ++;
-        n = recv(sockfd, buffer, BUFSIZE, 0);
+        n = read(sockfd, buffer, BUFSIZE);
         if (n <= 0)
         {   
             break;
@@ -142,6 +146,7 @@ void write_file_to_fd(int sockfd, int fd)
     FILE *fp;
     char buffer[BUFSIZE];
     int cnt = 0;
+    int cmp_num;
 
     fp = fdopen(fd, "w");
     if(fp==NULL){
@@ -153,14 +158,20 @@ void write_file_to_fd(int sockfd, int fd)
         cnt ++;
         n = recv(sockfd, buffer, BUFSIZE, 0); //마지막에 EOF를 던져주지 않으면 블로킹 당함.
         if (n <= 0) 
-        {        
+        {   //EOF -> 소켓이 끊어지면 전달된다 (n = 0)
+            // n < 0 -> recv 에러.
             break;
             return;
         }
-        if ((strcmp(buffer, "DATSD\0")) == 0) {
+        cmp_num = strncmp(buffer, "DATSD", 5);
+        if (cmp_num == 0) {
+            printf("this is strcmp : %d \n", cmp_num);
             printf("file recv done!\n");
             break;
             return;
+        }
+        else {
+            printf("this is strcmp : %d \n", cmp_num);
         }
         printf("%d : %s <----- recv \n",cnt, buffer);
         fprintf(fp, "%s", buffer);

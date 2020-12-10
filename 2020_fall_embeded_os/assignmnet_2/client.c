@@ -131,14 +131,14 @@ int main(void)
     {
         printf("\nplz input your command user%d :", token);
         scanf("%s", buf);
-        send(sockfd, buf, BUFSIZE, 0);
         if ((send(sockfd, buf, BUFSIZE, 0)) == -1)
         {
             perror("send error ! ");
         }
-        printf("send result : %s", buf);
-        read(sockfd, buf, BUFSIZE);
-        printf("this msg was sent from server : %s \n", buf);
+        printf("send result : %s \n", buf);
+        if ((read(sockfd, buf, BUFSIZE)) > 0){
+            printf("this msg received from server : %s \n", buf);
+        }
 
         if (strcmp(buf, "exit") == 0)
         {
@@ -158,6 +158,9 @@ int main(void)
             fputs("\n", stdout);
             print_recv_file(sockfd);
             printf("recv done !~!");
+        }
+        else if (strcmp(buf, "data")==0){
+            //FTP를 위한 모드로 진입
         }
         else {
             printf("%s\n", buf);

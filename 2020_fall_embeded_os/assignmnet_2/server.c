@@ -139,12 +139,13 @@ int main()
                     int fd = 0;                                                    //fd를 열어놓음
                     fd = open(server_file_path, O_CREAT | O_RDWR | O_TRUNC, 0644); //읽기쓰기 및 덮어쓰기, 실행권한
                     write_file_to_fd(new_fd, fd);                                  //파일 수신
+
                     for (;;)
                     {
                         printf("waiting for client's command \n");
-                        memset(buf, 0x00, BUFSIZE);
+                        bzero(buf, BUFSIZE);
                         read(new_fd, buf, BUFSIZE);
-                        printf("client send this command %s and length %d \n", buf, rb);
+                        printf("client send this command %s \n", buf);
 
                         if (strcmp("exit", buf) == 0)
                         {
@@ -163,7 +164,7 @@ int main()
                                 printf("error occured on server.\n");
                                 send(new_fd, "exit", BUFSIZE, 0); //for exit client
                             }
-                            memset(buf, 0, BUFSIZE);
+                            bzero(buf, BUFSIZE);
                             strcpy(buf, "list"); //list 파일을 보내줄것이라고 이야기 해주기.
                             send(new_fd, buf, BUFSIZE, 0);
                             bzero(tmp_file_path, BUFSIZE);
@@ -179,14 +180,20 @@ int main()
                             send_file(server_list_file, new_fd);
                             printf("server send done !! \n");
                             fclose(server_list_file);
-                            continue;
                         }
-                        else if (strcmp("hello", buf) == 0)
+                        else if (strcmp("hello\0", buf) == 0)
                         {
                             printf("got hello from client \n");
                             strcpy(buf, "hello !!");
                             send(new_fd, buf, BUFSIZE, 0);
-                            continue;
+                        }
+
+                        else if (strcmp("FTP", buf)==0){
+                            //FTP를 위한 모드 진입
+                            strcpy(buf, "data");
+                            send(new_fd, buf, BUFSIZE, 0);
+                            //어떤 파일을 읽을건지 받아온다.
+                            //tmp 라는 파일에 갖고있다 파일목록쓰
                         }
 
                         else
@@ -202,7 +209,7 @@ int main()
                 }
                 else if (token == USER2_LOGIN)
                 {
-                    memset(buf, 0, BUFSIZE);
+                    bzero(buf, BUFSIZE);
                     *(int *)&buf[0] = 2;
                     send(new_fd, buf, sizeof(buf), 0);
                     read(new_fd, file_name, BUFSIZE);
@@ -235,7 +242,7 @@ int main()
                                 printf("error occured on server.");
                                 send(new_fd, "exit", BUFSIZE, 0); //for exit client
                             }
-                            memset(buf, 0, BUFSIZE);
+                            bzero(buf, BUFSIZE);
                             strcpy(buf, "list"); //list 파일을 보내줄것이라고 이야기 해주기.
                             send(new_fd, buf, BUFSIZE, 0);
                             bzero(buf, BUFSIZE);
