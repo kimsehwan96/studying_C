@@ -30,10 +30,6 @@
 #define AFTER_STATE 1
 
 int make_tmp_file(int token);
-//lst 파일들이 있는 경로를 입력받고
-//해당 경로에있는 모든 lst 파일을 순회하면서
-//임시 파일에 끝에 계속해서 데이터를 붙인다
-//이후 임시파일의 파일디스크립터를 리턴해 소모할 수 있도록 한다.
 
 extern int errno;
 
@@ -52,7 +48,7 @@ int main()
     pid_t childpid;
     int rcv_byte;
     char *buf = (char *)malloc(BUFSIZE);
-    char *tmp_file_name = (char *)malloc(BUFSIZE);
+    char *tmp_file_path = (char *)malloc(BUFSIZE);
     char id[20];
     char pw[20];
     char msg[512];
@@ -61,7 +57,6 @@ int main()
 
     int val = 1;
     int state = INIT_STATE;
-
 
     //socket TCP file descirptor
     //check sockfd condition
@@ -126,36 +121,107 @@ int main()
         printf("Connection accept from %s\n", inet_ntoa(their_addr.sin_addr));
 
         if ((childpid = fork()) == 0)
-        {                  //child process
+        { //child process
             //close(sockfd); //더이상 필요하지 않을때 (프로그램 서버측 종료시에) 종료하는게 맞음
             for (;;)
             {
                 printf("accept ok \n");
-                //표준 입출력 함수 사용을 위한 입력, 출력 스트림 생성
                 int token = 0;
                 token = authenticate(new_fd, id, pw);
                 if (token == USER1_LOGIN)
                 {
                     memset(buf, 0, BUFSIZE);
-                    *(int *)&buf[0] = 1; //user1 인증 성공 정보를 보내기 위함(token)
+                    *(int *)&buf[0] = 1;
                     send(new_fd, buf, sizeof(buf), 0);
-                    //1이라는 정수를 전송해서 user1 로그인이 성공했음을 클라이언트에게 알림
-                    //이제 파일을 전송받기위해 대기.
-                     //먼저 이 때 클라이언트가 파일 이름을 보내줄 것
                     read(new_fd, file_name, BUFSIZE);
                     printf("client will sent this file %s \n", file_name);
                     strcat(server_file_path, file_name);                           //server_user1_file_list.lst 라는 이름으로 파일 관리.
                     int fd = 0;                                                    //fd를 열어놓음
                     fd = open(server_file_path, O_CREAT | O_RDWR | O_TRUNC, 0644); //읽기쓰기 및 덮어쓰기, 실행권한
-                    //기존에 user의 파일이 있을경우 업데이트를 위해 항상 접속하면 새로 작성한다.
-                    //파일 수신 로직
-                    write_file_to_fd(new_fd, fd); //파일 수신
-                    
+                    write_file_to_fd(new_fd, fd);                                  //파일 수신
 
                     for (;;)
-                    {   
+                    {
                         printf("waiting for client's command \n");
-                        memset(buf, 0x00, BUFSIZE);
+                        bzero(buf, BUFSIZE);
+                        read(new_fd, buf, BUFSIZE);
+                        printf("client send this command %s \n", buf);
+
+                        if (strcmp("exit", buf) == 0)
+                        {
+                            printf("client conenct close !\n");
+                            strcpy(buf, "exit");
+                            send(new_fd, buf, BUFSIZE, 0);
+                            break;
+                        }
+
+                        else if (strcmp("show", buf) == 0)
+                        {
+                            int rd_bytes = 0;
+                            printf("user%d requested file list ... \n", token);
+                            if (make_tmp_file(token) != 1)
+                            {
+                                printf("error occured on server.\n");
+                                send(new_fd, "exit", BUFSIZE, 0); //for exit client
+                            }
+                            bzero(buf, BUFSIZE);
+                            strcpy(buf, "list"); //list 파일을 보내줄것이라고 이야기 해주기.
+                            send(new_fd, buf, BUFSIZE, 0);
+                            bzero(tmp_file_path, BUFSIZE);
+                            getcwd(tmp_file_path, BUFSIZE);
+                            strcat(tmp_file_path, "/tmp/");
+                            strcat(tmp_file_path, "user1_tmp.lst");
+                            printf("tmp_file path : %s \n", tmp_file_path);
+                            FILE *server_list_file = fopen(tmp_file_path, "r");
+                            if (server_list_file == NULL){
+                                printf("error occured on FP");
+                            }
+                            printf("will send file...! \n");
+                            send_file(server_list_file, new_fd);
+                            printf("server send done !! \n");
+                            fclose(server_list_file);
+                        }
+                        else if (strcmp("hello\0", buf) == 0)
+                        {
+                            printf("got hello from client \n");
+                            strcpy(buf, "hello !!");
+                            send(new_fd, buf, BUFSIZE, 0);
+                        }
+
+                        else if (strcmp("FTP", buf)==0){
+                            //FTP를 위한 모드 진입
+                            strcpy(buf, "data");
+                            send(new_fd, buf, BUFSIZE, 0);
+                            //어떤 파일을 읽을건지 받아온다.
+                            //tmp 라는 파일에 갖고있다 파일목록쓰
+                        }
+
+                        else
+                        {
+                            printf("thre is no command like that ! : %s \n", buf);
+                            strcpy(buf, "exit");
+                            send(new_fd, buf, BUFSIZE, 0);
+                            break;
+                        }
+                    }
+                    close(new_fd);
+                    break;
+                }
+                else if (token == USER2_LOGIN)
+                {
+                    bzero(buf, BUFSIZE);
+                    *(int *)&buf[0] = 2;
+                    send(new_fd, buf, sizeof(buf), 0);
+                    read(new_fd, file_name, BUFSIZE);
+                    printf("client will sent this file %s \n", file_name);
+                    strcat(server_file_path, file_name);                           //server_user1_file_list.lst 라는 이름으로 파일 관리.
+                    int fd = 0;                                                    //fd를 열어놓음
+                    fd = open(server_file_path, O_CREAT | O_RDWR | O_TRUNC, 0644); //읽기쓰기 및 덮어쓰기, 실행권한
+                    write_file_to_fd(new_fd, fd);                                  //파일 수신
+                    for (;;)
+                    {
+                        printf("waiting for client's command \n");
+                        bzero(buf, BUFSIZE);
                         read(new_fd, buf, BUFSIZE);
                         printf("client send this command %s and length %d \n", buf, rb);
 
@@ -176,19 +242,23 @@ int main()
                                 printf("error occured on server.");
                                 send(new_fd, "exit", BUFSIZE, 0); //for exit client
                             }
-                            memset(buf, 0, BUFSIZE);
+                            bzero(buf, BUFSIZE);
                             strcpy(buf, "list"); //list 파일을 보내줄것이라고 이야기 해주기.
                             send(new_fd, buf, BUFSIZE, 0);
-
-                            strcpy(tmp_file_name, "user1_tmp.lst");
-                            FILE *server_list_file = fopen(tmp_file_name, "r+");
+                            bzero(buf, BUFSIZE);
+                            getcwd(tmp_file_path, BUFSIZE);
+                            strcat(tmp_file_path, "/tmp/");
+                            strcat(tmp_file_path, "user2_tmp.lst");
+                            FILE *server_list_file = fopen(tmp_file_path, "r");
                             send_file(server_list_file, new_fd);
                             printf("server send done !! \n");
                             fclose(server_list_file);
                             continue;
                         }
-                        else if (strcmp("hello", buf) == 0){
+                        else if (strcmp("hello", buf) == 0)
+                        {
                             printf("got hello from client \n");
+                            bzero(buf, BUFSIZE);
                             strcpy(buf, "hello !!");
                             send(new_fd, buf, BUFSIZE, 0);
                             continue;
@@ -203,11 +273,6 @@ int main()
                         }
                     }
                     close(new_fd);
-                    break;
-                }
-                else if (token == USER2_LOGIN)
-                {
-                   
                     break;
                 }
                 else
@@ -228,11 +293,16 @@ int main()
 int make_tmp_file(int token)
 {
     int n_bytes;
+    int idx = 0;
     int tmp_fd; //순회하면서 돌 fd
+    FILE *tmp_fp; //fd를 file pointer로 열어버리기.
     int fd;
+    FILE *fp;
     char user_token[10];
     char buf[BUFSIZE]; //유용하게 사용할 버퍼
     char *path = (char *)malloc(BUFSIZE);
+    char *tmp_file_path = (char *)malloc(BUFSIZE);
+    char static_path[512];
     memset(path, 0x00, BUFSIZE);
     char *tmp_file_name = (char *)malloc(BUFSIZE);
     memset(tmp_file_name, 0x00, BUFSIZE);
@@ -246,22 +316,28 @@ int make_tmp_file(int token)
     strcat(buf, "_tmp.lst");          //user1_tmp.lst
     strcpy(tmp_file_name, buf);       //tmp_file_name에 user1_tmp.lst 문자열 저장
     //tmp_file_name == "user1_tmp.lst"
+    //최초 실행 이후 원래 작업 디렉토리로 다시 이동해줘야 함.
     getcwd(buf, BUFSIZE); //서버코드가 실행중인 경로를 얻음.
-    chdir(buf);
+    strcpy(static_path, buf);
     // /Users/gimsehwan/Desktop/ingkle/studying_C/2020_fall_embeded_os/assignmnet_2
-    strcat(buf, "/data"); // 하위 디렉터리 /data 의 절대경로를 얻음
-    // buf == "/Users/gimsehwan/Desktop/ingkle/studying_C/2020_fall_embeded_os/assignmnet_2/data"
-    // strcat(buf, tmp_file_name);
-    strcpy(path, buf); //path에 buf에 담긴 경로 문자열 담아놓음
-    strcat(path, "/");
-    strcat(path, tmp_file_name);
-    fd = open(path,
+    strcpy(tmp_file_path, buf);
+    strcat(tmp_file_path, "/tmp"); // 하위 디렉터리 tmp
+    // strcat(buf, "/data"); // 하위 디렉터리 /data 의 절대경로를 얻음
+    // printf("this is cat buf + /data :: %s \n", buf);
+    // // buf == "/Users/gimsehwan/Desktop/ingkle/studying_C/2020_fall_embeded_os/assignmnet_2/data"
+    // // strcat(buf, tmp_file_name);
+    // strcpy(path, buf); //path에 buf에 담긴 경로 문자열 담아놓음
+    strcat(tmp_file_path, "/");
+    strcat(tmp_file_path, tmp_file_name);
+    fd = open(tmp_file_path,
               O_CREAT | O_RDWR | O_TRUNC, 0644);
     if (fd < 0)
     {
         perror("open error fd");
+        printf("this is path : %s \n", path);
         return -1;
     }
+    fp = fdopen(fd, "w");
     //다시 ./data 경로를 지정하기 위해서 문자열 처리
     getcwd(buf, BUFSIZE); //서버코드가 실행중인 경로를 얻음.
     strcat(buf, "/data"); // 하위 디렉터리 /data 의 절대경로를 얻음
@@ -278,34 +354,47 @@ int make_tmp_file(int token)
     {
         lstat(entry->d_name, &info);
         if (S_ISREG(info.st_mode))
-        {
+        {   
+            if ((strcmp(entry->d_name, tmp_file_name)) == 0)
+            {
+                continue; //임시파일 자체 이름은 패스 TODO: 다만 여러 유저의 임시파일이 있을 수 있다.
+                          //디렉터리를 분리하는 편이 나아보임.
+            }
+
             if ((tmp_fd = open(entry->d_name, O_RDWR)) < 0)
             {
                 perror("open error tmp_fd");
             }
-            if ((strcmp(entry->d_name, tmp_file_name)) == 0)
-            {
-                continue; //임시파일 자체 이름은 패스
-            }
             //임시 파일을 생성한다.
-            while ((n_bytes = read(tmp_fd, buf, BUFSIZE)) > 0)
-            {
-                if (n_bytes < BUFSIZE)
-                {
-                    buf[n_bytes] = '\0';
-                    write(fd, buf, n_bytes);
-                    break;
-                }
-                write(fd, buf, BUFSIZE);
+            // while ((n_bytes = read(tmp_fd, buf, BUFSIZE)) > 0)
+            // {
+            //     if (n_bytes < BUFSIZE)
+            //     {
+            //         buf[n_bytes] = '\0';
+            //         write(fd, buf, n_bytes);
+            //         break;
+            //     }
+            //     write(fd, buf, BUFSIZE);
+            // }
+            tmp_fp = fdopen(tmp_fd, "r+");
+            while(fgets(buf, BUFSIZE, tmp_fp) != NULL) {
+                fprintf(fp, "%d : %s",idx, buf);
+                fflush(fp);
+                idx++;
             }
             //각 파일의 맨 앞에 인덱스를 붙여주는 로직
+            fclose(tmp_fp);
             close(tmp_fd);
         }
     }
+    printf("making file done...\n");
     free(path);
     free(tmp_file_name);
+    free(tmp_file_path);
     closedir(dir);
+    lseek(fd, 0, SEEK_SET); //파일 오프셋을 맨 앞으로 땡겨놓기
     close(fd);
     close(tmp_fd);
+    chdir(static_path);
     return 1;
 }

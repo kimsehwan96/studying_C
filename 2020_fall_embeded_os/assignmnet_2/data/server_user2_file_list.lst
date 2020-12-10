@@ -1,0 +1,16 @@
+user2 127.0.0.1 user1_file_list.lst
+user2 127.0.0.1 user2_file_list.lst
+user2 127.0.0.1 test_read.c
+user2 127.0.0.1 my_ip.h
+user2 127.0.0.1 test_for_test
+user2 127.0.0.1 server
+user2 127.0.0.1 server.c
+user2 127.0.0.1 readme.md
+user2 127.0.0.1 client.c
+user2 127.0.0.1 test_cwd.c
+user2 127.0.0.1 common.h
+user2 127.0.0.1 test.c
+user2 127.0.0.1 new_test
+user2 127.0.0.1 test_cwd
+user2 127.0.0.1 list_func.h
+user2 127.0.0.1 client

@@ -27,7 +27,7 @@ extern int errno;
 
 //서버와 인증 로직을 수행하기 위한 read, send, scanf 등의 함수를 하나의 flow로 함수화함
 void auth_request(int fd, char *id, char *pw, char *buf)
-{ 
+{
     read(fd, buf, BUFSIZE);
     printf("%s", buf);
     scanf("%s", id);
@@ -39,7 +39,6 @@ void auth_request(int fd, char *id, char *pw, char *buf)
     send(fd, pw, strlen(pw) + 1, 0);
     memset(buf, 0, BUFSIZE);
 }
-
 
 int main(void)
 {
@@ -84,30 +83,19 @@ int main(void)
     {
         printf("connect ok\n");
     }
-    //표준 파일 입출력을 위한 입력, 출력 스트림 생성
-    /////// 초기 접속 시 인증 로직 ///////////////
     auth_request(sockfd, id, pw, buf); //if user 1 success, we will get 1
     read(sockfd, buf, BUFSIZE);
     printf("this is token %d\n", *(int *)&buf[0]);
     token = *(int *)&buf[0];
-    //// 인증 종료 후 사용자의 토큰을 서버로부터 받음 /////////
     if (token == 1)
     { //유저 1 로그인 성공
         printf("login success user%d\n", token);
         mklistf("user1", "127.0.0.1"); //뒤에 인자(ip address)는 my_ip 헤더를 이용할 것.
-        //user1_file_list.lst 생성 완료, 이 파일을 서버에 전송해야 함.
-        //1. 파일 이름을 먼저 전송한다
-        //2. EOF까지 파일을 char로 BUFSIZE에 최대한 담아서 보낸다.
-
-        //file descriptor open
         strcpy(file_name, "user1_file_list.lst");
-        
-        //filename send
         if ((fd = open("user1_file_list.lst", O_RDWR)) < 0)
         {
             perror("open() error !");
         }
-        //파일 이름 전송
         send(sockfd, file_name, BUFSIZE, 0);
         FILE *user_list_fp;
         user_list_fp = fdopen(fd, "r+");
@@ -115,16 +103,23 @@ int main(void)
         printf("sending file done ! \n");
 
         close(fd);
-        close(sockfd);//EOF 전달
-
-        //초기화 로직 종료, 메인 로직 실행 필요함 (클라이언트는 명령어를 서버에 전달한다.)
-        //명령의 종류 : 파일 리스트 보기
-        // 특정 파일 전송 받기
-        // 종료하기
     }
     else if (token == 2)
     {
+        printf("login success user%d\n", token);
+        mklistf("user2", "127.0.0.1"); //뒤에 인자(ip address)는 my_ip 헤더를 이용할 것.
+        strcpy(file_name, "user2_file_list.lst");
+        if ((fd = open("user2_file_list.lst", O_RDWR)) < 0)
+        {
+            perror("open() error !");
+        }
+        send(sockfd, file_name, BUFSIZE, 0);
+        FILE *user_list_fp;
+        user_list_fp = fdopen(fd, "r+");
+        send_file(user_list_fp, sockfd);
+        printf("sending file done ! \n");
 
+        close(fd);
     }
     else
     {
@@ -132,25 +127,18 @@ int main(void)
         exit(1);
     }
 
-    ////////////////// 클라이언트 메인 루프 start //////////////
-    ///         여기서부터는 표준 입출력을 활용하자
     for (;;)
-    {   
-            if (connect(sockfd, (struct sockaddr *)&dest_addr, sizeof(struct sockaddr)) == -1)
     {
-        perror("connect");
-        exit(1);
-    }
         printf("\nplz input your command user%d :", token);
         scanf("%s", buf);
-        send(sockfd, buf, BUFSIZE, 0);
         if ((send(sockfd, buf, BUFSIZE, 0)) == -1)
         {
             perror("send error ! ");
         }
-        printf("send result : %s", buf);
-        read(sockfd, buf, BUFSIZE);
-        printf("this msg was sent from server : %s \n", buf);
+        printf("send result : %s \n", buf);
+        if ((read(sockfd, buf, BUFSIZE)) > 0){
+            printf("this msg received from server : %s \n", buf);
+        }
 
         if (strcmp(buf, "exit") == 0)
         {
@@ -161,15 +149,22 @@ int main(void)
         else if (strcmp(buf, "list") == 0)
         {
             fputs("wait", stdout);
-            for (int i = 0; i < 5; i++)
+            for (int i = 0; i < 50; i++)
             {
                 fputs(".", stdout);
-                sleep(1);
+                fflush(stdout);
+                usleep(10000);
             }
             fputs("\n", stdout);
             print_recv_file(sockfd);
             printf("recv done !~!");
-            close(sockfd);
+        }
+        else if (strcmp(buf, "data")==0){
+            //FTP를 위한 모드로 진입
+        }
+        else {
+            printf("%s\n", buf);
+            printf("no meaning...\n");
         }
     }
     close(sockfd);
