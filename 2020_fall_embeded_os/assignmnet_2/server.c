@@ -35,7 +35,7 @@ extern int errno;
 
 int main()
 {
-    int sockfd, new_fd; //server 호스트의 소켓 파일디스크립터 및 새로운 연결을 정의할 new_fd
+    int sockfd, new_fd, ftp_fd; //server 호스트의 소켓 파일디스크립터 및 새로운 연결을 정의할 new_fd
     int file_size;      //파일의 사이즈, 미사용중
     struct sockaddr_in my_addr;
     struct sockaddr_in their_addr;
