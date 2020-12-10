@@ -100,7 +100,10 @@ void send_file(FILE *fp, int sockfd)
         printf("%d : %s  <---- sended \n", cnt, data);
         bzero(data, BUFSIZE);
     }
+    cnt++;
+    bzero(data, BUFSIZE);
     strcpy(data, "DATSD"); //DATSD는 전송 완료되었음을 명시하기 위해서 사용
+    printf("%d : %s \n",cnt,  data);
     //보안에 취약점이 있지만 그냥 쓰자.
     send(sockfd, data, sizeof(data), 0);
     return ;
@@ -154,7 +157,7 @@ void write_file_to_fd(int sockfd, int fd)
             break;
             return;
         }
-        if ((strcmp(buffer, "DATSD")) == 0) {
+        if ((strcmp(buffer, "DATSD\0")) == 0) {
             printf("file recv done!\n");
             break;
             return;
