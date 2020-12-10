@@ -42,7 +42,7 @@ void auth_request(int fd, char *id, char *pw, char *buf)
 
 int main(void)
 {
-    int sockfd, fd;
+    int sockfd, fd, ftp_fd;
     int rcv_byte, file_size;
     int token = 0;
     struct sockaddr_in dest_addr;
