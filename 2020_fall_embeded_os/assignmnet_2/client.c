@@ -23,8 +23,20 @@
 #define AFTER_STATE 1
 #define SEG 1
 
-extern int errno;
+struct p2p_file
+{
+    int idx;
+    char user_name[20];
+    char ip[40];
+    int port;
+    char file_name[50];
+};
+//위는 스레드에게 넘겨주면 되겠당.
 
+extern int errno;
+//p2p를 위한 데이터 송수신은 thread로 구현해보기
+
+int setup_socket(char *ip, int port);
 //서버와 인증 로직을 수행하기 위한 read, send, scanf 등의 함수를 하나의 flow로 함수화함
 void auth_request(int fd, char *id, char *pw, char *buf)
 {
@@ -42,10 +54,14 @@ void auth_request(int fd, char *id, char *pw, char *buf)
 
 int main(void)
 {
-    int sockfd, fd, ftp_fd;
+    int sockfd, fd, p2p_fd, p2p_new_fd;
     int rcv_byte, file_size;
     int token = 0;
-    struct sockaddr_in dest_addr;
+    int req_file_idx;
+    unsigned int sin_size;
+    struct sockaddr_in dest_addr;  //서버의 어드레스
+    struct sockaddr_in my_addr;    //클라이언트가 p2p 서버로 동작하기 위한 addr
+    struct sockaddr_in their_addr; //p2p 요청으로 들어온 상대 유저의 ip 어드레스
     char *buf = (char *)malloc(BUFSIZE);
     char *msg = (char *)malloc(BUFSIZE);
     char *file_buf = (char *)malloc(SEG);
@@ -56,7 +72,7 @@ int main(void)
     int len = BUFSIZE;
     FILE *write_sock_fp;
     FILE *read_sock_fp;
-    ssize_t ret;
+    pid_t childpid; //p2p
 
     sockfd = socket(AF_INET, SOCK_STREAM, 0); //socket fd
 
@@ -90,7 +106,7 @@ int main(void)
     if (token == 1)
     { //유저 1 로그인 성공
         printf("login success user%d\n", token);
-        mklistf("user1", "127.0.0.1"); //뒤에 인자(ip address)는 my_ip 헤더를 이용할 것.
+        mklistf("user1", "127.0.0.1", USER1_FTP_PORT); //뒤에 인자(ip address)는 my_ip 헤더를 이용할 것.
         strcpy(file_name, "user1_file_list.lst");
         if ((fd = open("user1_file_list.lst", O_RDWR)) < 0)
         {
@@ -102,12 +118,12 @@ int main(void)
         send_file(user_list_fp, sockfd);
         printf("sending file done ! \n");
 
-        close(fd);
+        close(fd); // 유저의 최초 파일 전송 이후 child process fork.
     }
     else if (token == 2)
     {
         printf("login success user%d\n", token);
-        mklistf("user2", "127.0.0.1"); //뒤에 인자(ip address)는 my_ip 헤더를 이용할 것.
+        mklistf("user2", "127.0.0.1", USER2_FTP_PORT); //뒤에 인자(ip address)는 my_ip 헤더를 이용할 것.
         strcpy(file_name, "user2_file_list.lst");
         if ((fd = open("user2_file_list.lst", O_RDWR)) < 0)
         {
@@ -126,6 +142,54 @@ int main(void)
         printf("login failed.");
         exit(1);
     }
+    /*          클라이언트의 p2p 파일공유를 위한 서버 모드 셋업     */
+
+    //after init logic, we fork child process for p2p file tranfer service.
+    //child process..p2p Listen mode.
+    char *p2p_ip_address = (char *)malloc(512);
+    int p2p_port;
+    // my_ip(my_ip_address); //이 클라이언트 코드가 돌아가는 ip주소 실제 배포시 사용
+    strcpy(p2p_ip_address, "127.0.0.1");
+    if (token == USER1_LOGIN)
+    {
+        p2p_fd = setup_socket(p2p_ip_address, USER1_FTP_PORT); //소켓 생성
+    }
+    else if (token == USER2_LOGIN)
+    {
+        p2p_fd = setup_socket(p2p_ip_address, USER2_FTP_PORT); //소켓 생성
+    }
+    else
+    {
+        printf("wrong process...\n");
+        return 1; //child process done with exit code 1
+        //애초에 로그인 실패하면 여기까지 오지도 않는다.
+    }
+    sin_size = sizeof(struct sockaddr_in);
+
+    if ((childpid = fork()) == 0)
+    {
+        printf("I'm forked proces...!! \n");
+        for (;;)
+        {
+            p2p_new_fd = accept(p2p_fd, (struct sockaddr *)&their_addr, &sin_size);
+            if (p2p_new_fd < 0)
+            {
+                perror("bind error");
+            }
+            printf("Connection accept from %s\n", inet_ntoa(their_addr.sin_addr));
+            for (;;)
+            {
+                //p2p main logic
+                printf("Hello this is forked client process \n");
+                send(p2p_new_fd, "Hello there !", BUFSIZE, 0);
+                break;
+            }
+        }
+        close(p2p_new_fd);
+        close(p2p_fd);
+    }
+    /*          클라이언트의 p2p 파일공유를 위한 서버 모드 셋업 끝. listen 상태이며 accept 가능.    */
+    /*          상대 클라이언트로부터 파일명을 받아서 fp열고, 스레드 호출해서 데이터 다 받고 connection 끊어내기 */
 
     for (;;)
     {
@@ -136,7 +200,8 @@ int main(void)
             perror("send error ! ");
         }
         printf("send result : %s \n", buf);
-        if ((read(sockfd, buf, BUFSIZE)) > 0){
+        if ((read(sockfd, buf, BUFSIZE)) > 0)
+        {
             printf("this msg received from server : %s \n", buf);
         }
 
@@ -159,10 +224,18 @@ int main(void)
             print_recv_file(sockfd);
             printf("recv done !~!");
         }
-        else if (strcmp(buf, "data")==0){
-            //FTP를 위한 모드로 진입
+        else if (strcmp(buf, "data") == 0)
+        {
+            printf("which file do you want ? : ");
+            scanf("%d", &req_file_idx);
+            bzero(buf, BUFSIZE);
+            *(int *)&buf[0] = req_file_idx;
+            send(sockfd, buf, BUFSIZE, 0); //send file no.
+            //여기서 서버로부터 ip, address, 파일 이름에 대한 정보를 수신하고
+            //그 정보를 토대로 socket 연결을 해당 ip, address, port에 대해 connect & file recv & close 하면 끝
         }
-        else {
+        else
+        {
             printf("%s\n", buf);
             printf("no meaning...\n");
         }
@@ -171,4 +244,52 @@ int main(void)
     free(buf);
 
     return 0;
+}
+
+int setup_socket(char *ip, int port)
+{   //client가 p2p 서버로 동작하기 위해 셋업하는 함수
+    //클라이언트의 자식 프로세스는 ANY ADDRESS로 listen 상태임.
+    int e;
+    int sockfd;
+    int val = 1;
+    struct sockaddr_in server_addr;
+    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (sockfd < 0)
+    {
+        perror("socket");
+        exit(1);
+    }
+    printf("[+]Server socket created successfully.\n");
+
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_port = port;
+    server_addr.sin_addr.s_addr = INADDR_ANY;
+
+    memset(&(server_addr.sin_zero), 0, 8);
+    if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, (char *)&val, sizeof(val)) < 0)
+    {
+        perror("setsockopt");
+        close(sockfd);
+        exit(1);
+    }
+
+    e = bind(sockfd, (struct sockaddr *)&server_addr, sizeof(server_addr));
+    if (e < 0)
+    {
+        perror("bind");
+        exit(1);
+    }
+    printf("[+]Binding successfull in sub process.....\n");
+
+    if (listen(sockfd, 10) == -1)
+    {
+        perror("listen");
+        exit(1);
+    }
+    else
+    {
+        printf("listen ok \n");
+    }
+
+    return sockfd;
 }

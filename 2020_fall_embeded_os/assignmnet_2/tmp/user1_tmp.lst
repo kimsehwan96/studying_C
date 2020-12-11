@@ -1,28 +1,26 @@
-0 : user1 127.0.0.1 user1_file_list.lst
-1 : user1 127.0.0.1 my_ip.h
-2 : user1 127.0.0.1 client.tar
-3 : user1 127.0.0.1 server
-4 : user1 127.0.0.1 server.c
-5 : user1 127.0.0.1 readme.md
-6 : user1 127.0.0.1 client.c
-7 : user1 127.0.0.1 common
-8 : user1 127.0.0.1 common.h
-9 : user1 127.0.0.1 server.tar
-10 : user1 127.0.0.1 list_func.h
-11 : user1 127.0.0.1 client
-12 : user2 127.0.0.1 user1_file_list.lst
-13 : user2 127.0.0.1 user2_file_list.lst
-14 : user2 127.0.0.1 test_read.c
-15 : user2 127.0.0.1 my_ip.h
-16 : user2 127.0.0.1 test_for_test
-17 : user2 127.0.0.1 server
-18 : user2 127.0.0.1 server.c
-19 : user2 127.0.0.1 readme.md
-20 : user2 127.0.0.1 client.c
-21 : user2 127.0.0.1 test_cwd.c
-22 : user2 127.0.0.1 common.h
-23 : user2 127.0.0.1 test.c
-24 : user2 127.0.0.1 new_test
-25 : user2 127.0.0.1 test_cwd
-26 : user2 127.0.0.1 list_func.h
-27 : user2 127.0.0.1 client
+0 : user1 127.0.0.1 4141 user1_file_list.lst
+1 : user1 127.0.0.1 4141 user2_file_list.lst
+2 : user1 127.0.0.1 4141 my_ip.h
+3 : user1 127.0.0.1 4141 client.tar
+4 : user1 127.0.0.1 4141 server
+5 : user1 127.0.0.1 4141 server.c
+6 : user1 127.0.0.1 4141 readme.md
+7 : user1 127.0.0.1 4141 client.c
+8 : user1 127.0.0.1 4141 common
+9 : user1 127.0.0.1 4141 common.h
+10 : user1 127.0.0.1 4141 server.tar
+11 : user1 127.0.0.1 4141 list_func.h
+12 : user1 127.0.0.1 4141 client
+13 : user2 127.0.0.1 4142 user1_file_list.lst
+14 : user2 127.0.0.1 4142 user2_file_list.lst
+15 : user2 127.0.0.1 4142 my_ip.h
+16 : user2 127.0.0.1 4142 client.tar
+17 : user2 127.0.0.1 4142 server
+18 : user2 127.0.0.1 4142 server.c
+19 : user2 127.0.0.1 4142 readme.md
+20 : user2 127.0.0.1 4142 client.c
+21 : user2 127.0.0.1 4142 common
+22 : user2 127.0.0.1 4142 common.h
+23 : user2 127.0.0.1 4142 server.tar
+24 : user2 127.0.0.1 4142 list_func.h
+25 : user2 127.0.0.1 4142 client

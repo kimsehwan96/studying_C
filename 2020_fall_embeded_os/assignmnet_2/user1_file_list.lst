@@ -1,12 +1,13 @@
-user1 127.0.0.1 user1_file_list.lst
-user1 127.0.0.1 my_ip.h
-user1 127.0.0.1 client.tar
-user1 127.0.0.1 server
-user1 127.0.0.1 server.c
-user1 127.0.0.1 readme.md
-user1 127.0.0.1 client.c
-user1 127.0.0.1 common
-user1 127.0.0.1 common.h
-user1 127.0.0.1 server.tar
-user1 127.0.0.1 list_func.h
-user1 127.0.0.1 client
+user1 127.0.0.1 4141 user1_file_list.lst
+user1 127.0.0.1 4141 user2_file_list.lst
+user1 127.0.0.1 4141 my_ip.h
+user1 127.0.0.1 4141 client.tar
+user1 127.0.0.1 4141 server
+user1 127.0.0.1 4141 server.c
+user1 127.0.0.1 4141 readme.md
+user1 127.0.0.1 4141 client.c
+user1 127.0.0.1 4141 common
+user1 127.0.0.1 4141 common.h
+user1 127.0.0.1 4141 server.tar
+user1 127.0.0.1 4141 list_func.h
+user1 127.0.0.1 4141 client
