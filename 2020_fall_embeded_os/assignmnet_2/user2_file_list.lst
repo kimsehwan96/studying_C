@@ -9,5 +9,6 @@ user2 127.0.0.1 4142 client.c
 user2 127.0.0.1 4142 common
 user2 127.0.0.1 4142 common.h
 user2 127.0.0.1 4142 server.tar
+user2 127.0.0.1 4142 common.h.got
 user2 127.0.0.1 4142 list_func.h
 user2 127.0.0.1 4142 client

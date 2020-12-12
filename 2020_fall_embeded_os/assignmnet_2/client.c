@@ -57,6 +57,7 @@ int main(void)
 {
     int sockfd, fd, p2p_fd, p2p_new_fd;
     int p2p_req_fd;
+    int p2p_recv_file_fd, p2p_send_file_fd;
     int rcv_byte, file_size;
     int token = 0;
     int req_file_idx;
@@ -178,26 +179,37 @@ int main(void)
 
     if ((childpid = fork()) == 0)
     {
+        char p2p_buf[BUFSIZE];
+        char tt_buf[BUFSIZE];
+        char will_recv_file_name[BUFSIZE];
+        FILE *p2p_send_file;
         for (;;)
-        {
+        {   printf("this is accpeted new p2p server mode on....sockfd %d\n", p2p_fd);
             p2p_new_fd = accept(p2p_fd, (struct sockaddr *)&their_addr, &sin_size);
-            printf("this is accpeted new p2p server mode sockfd %d\n", p2p_new_fd);
             if (p2p_new_fd < 0)
             {
                 perror("bind error");
+                return 0;
             }
             printf("Connection accept from %s\n", inet_ntoa(their_addr.sin_addr));
             for (;;)
             {
                 //p2p main logic
-                printf("Hello this is forked client process, connected ! \n");
-                send(p2p_new_fd, "Hello there !", BUFSIZE, 0);
+                read(p2p_new_fd, p2p_buf, BUFSIZE); //filename읽음.
+                strcpy(will_recv_file_name, p2p_buf);
+                printf("I'll send this file : %s to %s \n", p2p_buf, inet_ntoa(their_addr.sin_addr));
+                getcwd(tt_buf, BUFSIZE);
+                printf("sending in p2p mode current work directory : %s \n", tt_buf);
+                p2p_send_file_fd = open(p2p_buf, O_RDWR);
+                p2p_send_file = fdopen(p2p_send_file_fd, "r+");
+                send_file(p2p_send_file, p2p_new_fd);
                 break;
             }
         }
         close(p2p_new_fd);
         close(p2p_fd);
         printf("p2p sock cloese \n");
+        return 0;
     }
     /*          클라이언트의 p2p 파일공유를 위한 서버 모드 셋업 끝. listen 상태이며 accept 가능.    */
     /*          상대 클라이언트로부터 파일명을 받아서 fp열고, 스레드 호출해서 데이터 다 받고 connection 끊어내기 */
@@ -256,7 +268,17 @@ int main(void)
             printf("received %s %s %d \n",p2p_file_name, p2p_ip, p2p_port);
 
             p2p_req_fd = setup_socket_connect(p2p_ip, p2p_port);
-
+            //connect 된 상태다. 나는 상대방 소켓으로부터 데이터를 받아야 한다.
+            //먼저 받고싶은 파일의 이름을 보내주고, 그 파일을 받아버리자.
+            strcpy(buf, p2p_file_name);
+            printf("Requested this file : %s \n", buf);
+            send(p2p_req_fd, buf, BUFSIZE, 0); //파일 이름 전송
+            strcat(p2p_file_name, ".got");
+            p2p_recv_file_fd = open(p2p_file_name, O_CREAT | O_RDWR | O_TRUNC, 0644); //읽기/쓰기/생성 및 0644            
+            write_file_to_fd(p2p_req_fd, p2p_recv_file_fd);
+            printf("recv requested file done. \n");
+            close(p2p_req_fd); //p2p connection close.
+            close(p2p_recv_file_fd);
 
         }
         else
@@ -287,7 +309,7 @@ int setup_socket(int port)
     printf("[+]Server socket created successfully.\n");
 
     server_addr.sin_family = AF_INET;
-    server_addr.sin_port = port;
+    server_addr.sin_port = htons(port);
     server_addr.sin_addr.s_addr = INADDR_ANY;
 
     memset(&(server_addr.sin_zero), 0, 8);
@@ -321,7 +343,7 @@ int setup_socket(int port)
 
 
 int setup_socket_connect(char *ip, int port)
-{   //client가 p2p 서버로 동작하기 위해 셋업하는 함수
+{   
     int e;
     int sockfd;
     int val = 1;
