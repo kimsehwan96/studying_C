@@ -36,7 +36,8 @@ struct p2p_file
 extern int errno;
 //p2p를 위한 데이터 송수신은 thread로 구현해보기
 
-int setup_socket(char *ip, int port);
+int setup_socket(int port);
+int setup_socket_connect(char *ip, int port);
 //서버와 인증 로직을 수행하기 위한 read, send, scanf 등의 함수를 하나의 flow로 함수화함
 void auth_request(int fd, char *id, char *pw, char *buf)
 {
@@ -55,6 +56,7 @@ void auth_request(int fd, char *id, char *pw, char *buf)
 int main(void)
 {
     int sockfd, fd, p2p_fd, p2p_new_fd;
+    int p2p_req_fd;
     int rcv_byte, file_size;
     int token = 0;
     int req_file_idx;
@@ -70,6 +72,11 @@ int main(void)
     char pw[20];
     int state = INIT_STATE;
     int len = BUFSIZE;
+
+    int p2p_port;
+    char p2p_ip[512];
+    char p2p_file_name[512];
+
     FILE *write_sock_fp;
     FILE *read_sock_fp;
     pid_t childpid; //p2p
@@ -147,16 +154,19 @@ int main(void)
     //after init logic, we fork child process for p2p file tranfer service.
     //child process..p2p Listen mode.
     char *p2p_ip_address = (char *)malloc(512);
-    int p2p_port;
     // my_ip(my_ip_address); //이 클라이언트 코드가 돌아가는 ip주소 실제 배포시 사용
     strcpy(p2p_ip_address, "127.0.0.1");
     if (token == USER1_LOGIN)
     {
-        p2p_fd = setup_socket(p2p_ip_address, USER1_FTP_PORT); //소켓 생성
+        p2p_fd = setup_socket(USER1_FTP_PORT); //소켓 생성
+        printf("this is main process's p2p server mode sockfd : %d\n", p2p_fd);
+        printf("user 1 has p2p server sub-process %s : %d\n", p2p_ip_address, USER1_FTP_PORT);
     }
     else if (token == USER2_LOGIN)
     {
-        p2p_fd = setup_socket(p2p_ip_address, USER2_FTP_PORT); //소켓 생성
+        p2p_fd = setup_socket(USER2_FTP_PORT); //소켓 생성
+        printf("this is main process's p2p server mode sockfd : %d\n", p2p_fd);
+        printf("user 2 has p2p server sub-process %s : %d\n", p2p_ip_address, USER2_FTP_PORT);
     }
     else
     {
@@ -168,10 +178,10 @@ int main(void)
 
     if ((childpid = fork()) == 0)
     {
-        printf("I'm forked proces...!! \n");
         for (;;)
         {
             p2p_new_fd = accept(p2p_fd, (struct sockaddr *)&their_addr, &sin_size);
+            printf("this is accpeted new p2p server mode sockfd %d\n", p2p_new_fd);
             if (p2p_new_fd < 0)
             {
                 perror("bind error");
@@ -180,13 +190,14 @@ int main(void)
             for (;;)
             {
                 //p2p main logic
-                printf("Hello this is forked client process \n");
+                printf("Hello this is forked client process, connected ! \n");
                 send(p2p_new_fd, "Hello there !", BUFSIZE, 0);
                 break;
             }
         }
         close(p2p_new_fd);
         close(p2p_fd);
+        printf("p2p sock cloese \n");
     }
     /*          클라이언트의 p2p 파일공유를 위한 서버 모드 셋업 끝. listen 상태이며 accept 가능.    */
     /*          상대 클라이언트로부터 파일명을 받아서 fp열고, 스레드 호출해서 데이터 다 받고 connection 끊어내기 */
@@ -233,6 +244,20 @@ int main(void)
             send(sockfd, buf, BUFSIZE, 0); //send file no.
             //여기서 서버로부터 ip, address, 파일 이름에 대한 정보를 수신하고
             //그 정보를 토대로 socket 연결을 해당 ip, address, port에 대해 connect & file recv & close 하면 끝
+            read(sockfd, buf, BUFSIZE);
+            strcpy(p2p_file_name, buf);
+
+            read(sockfd, buf, BUFSIZE);
+            strcpy(p2p_ip, buf);
+
+            read(sockfd, buf, BUFSIZE);
+            p2p_port = *(int *)&buf[0];
+
+            printf("received %s %s %d \n",p2p_file_name, p2p_ip, p2p_port);
+
+            p2p_req_fd = setup_socket_connect(p2p_ip, p2p_port);
+
+
         }
         else
         {
@@ -246,7 +271,7 @@ int main(void)
     return 0;
 }
 
-int setup_socket(char *ip, int port)
+int setup_socket(int port)
 {   //client가 p2p 서버로 동작하기 위해 셋업하는 함수
     //클라이언트의 자식 프로세스는 ANY ADDRESS로 listen 상태임.
     int e;
@@ -290,6 +315,47 @@ int setup_socket(char *ip, int port)
     {
         printf("listen ok \n");
     }
+    printf("returing p2p server sock fd %d \n", sockfd);
+    return sockfd;
+}
 
+
+int setup_socket_connect(char *ip, int port)
+{   //client가 p2p 서버로 동작하기 위해 셋업하는 함수
+    int e;
+    int sockfd;
+    int val = 1;
+    struct sockaddr_in target_addr;
+    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (sockfd < 0)
+    {
+        perror("socket");
+        exit(1);
+    }
+    printf("[+]P2P Client socket created successfully.\n");
+
+    target_addr.sin_family = AF_INET;
+    target_addr.sin_port = htons(port);
+    target_addr.sin_addr.s_addr = inet_addr(ip);
+
+    printf("attemp to connect %s : %d\n",ip, port);
+
+    memset(&(target_addr.sin_zero), 0, 8);
+    if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, (char *)&val, sizeof(val)) < 0)
+    {
+        perror("setsockopt");
+        close(sockfd);
+        exit(1);
+    }
+    if (connect(sockfd, (struct sockaddr *)&target_addr, sizeof(struct sockaddr)) == -1)
+    {
+        perror("connect");
+        exit(1);
+    }
+    else
+    {
+        printf("connect ok\n");
+    }
+    printf("returing p2p client sock fd %d \n", sockfd);
     return sockfd;
 }

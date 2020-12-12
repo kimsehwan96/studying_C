@@ -215,8 +215,22 @@ int main()
                             printf("user : %s\n", file_info->user_name);
                             printf("port : %d \n", file_info->port);
                             printf("file name : %s\n", file_info->file_name);
+                            printf("ip : %s \n", file_info->ip);
                             //어떤 파일을 읽을건지 받아온다.
                             //tmp 라는 파일에 갖고있다 파일목록쓰
+                            //port와 ip, file_name을 전달해준다.
+                            strcpy(buf, file_info->file_name);
+                            send(new_fd, buf, BUFSIZE, 0);
+                            bzero(buf, BUFSIZE);
+
+                            strcpy(buf, file_info->ip);
+                            send(new_fd, buf, BUFSIZE, 0);
+                            bzero(buf, BUFSIZE);
+
+                            *(int *)&buf[0] = file_info->port;
+                            send(new_fd, buf, BUFSIZE, 0);
+                            bzero(buf, BUFSIZE);
+
                         }
 
                         else
