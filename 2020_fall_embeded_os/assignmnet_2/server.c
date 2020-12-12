@@ -29,7 +29,17 @@
 #define INIT_STATE 0
 #define AFTER_STATE 1
 
+struct p2p_file
+{
+    int idx;
+    char user_name[20];
+    char ip[40];
+    int port;
+    char file_name[50];
+};
+
 int make_tmp_file(int token);
+void parse_file_info(struct p2p_file *file_info, int idx, FILE *stream);//file_info에 해당 idx에 해당하는 정보를을 넘겨줄 함수임.
 
 extern int errno;
 
@@ -47,6 +57,7 @@ int main()
     //for server concurrency, we will fork server process with each connection request.
     pid_t childpid;
     int rcv_byte;
+    int recv_idx;
     char *buf = (char *)malloc(BUFSIZE);
     char *tmp_file_path = (char *)malloc(BUFSIZE);
     char id[20];
@@ -57,6 +68,9 @@ int main()
 
     int val = 1;
     int state = INIT_STATE;
+
+    struct p2p_file *file_info = (struct p2p_file *)malloc(sizeof(struct p2p_file));
+    FILE *p2p_stream;
 
     //socket TCP file descirptor
     //check sockfd condition
@@ -192,8 +206,31 @@ int main()
                             //FTP를 위한 모드 진입
                             strcpy(buf, "data");
                             send(new_fd, buf, BUFSIZE, 0);
+                            recv(new_fd, buf, BUFSIZE, 0);
+                            recv_idx = *(int *)&buf[0];
+                            //여기서 tmp 파일 인덱스를 찾아서. 어떤 유저, 어떤 아이디, 어떤 포트, 어떤 파일인지 갖는다.
+                            p2p_stream = fopen("tmp/user1_tmp.lst", "r+");
+                            parse_file_info(file_info, recv_idx, p2p_stream);
+                            printf("result ... \n");
+                            printf("user : %s\n", file_info->user_name);
+                            printf("port : %d \n", file_info->port);
+                            printf("file name : %s\n", file_info->file_name);
+                            printf("ip : %s \n", file_info->ip);
                             //어떤 파일을 읽을건지 받아온다.
                             //tmp 라는 파일에 갖고있다 파일목록쓰
+                            //port와 ip, file_name을 전달해준다.
+                            strcpy(buf, file_info->file_name);
+                            send(new_fd, buf, BUFSIZE, 0);
+                            bzero(buf, BUFSIZE);
+
+                            strcpy(buf, file_info->ip);
+                            send(new_fd, buf, BUFSIZE, 0);
+                            bzero(buf, BUFSIZE);
+
+                            *(int *)&buf[0] = file_info->port;
+                            send(new_fd, buf, BUFSIZE, 0);
+                            bzero(buf, BUFSIZE);
+
                         }
 
                         else
@@ -365,17 +402,7 @@ int make_tmp_file(int token)
             {
                 perror("open error tmp_fd");
             }
-            //임시 파일을 생성한다.
-            // while ((n_bytes = read(tmp_fd, buf, BUFSIZE)) > 0)
-            // {
-            //     if (n_bytes < BUFSIZE)
-            //     {
-            //         buf[n_bytes] = '\0';
-            //         write(fd, buf, n_bytes);
-            //         break;
-            //     }
-            //     write(fd, buf, BUFSIZE);
-            // }
+
             tmp_fp = fdopen(tmp_fd, "r+");
             while(fgets(buf, BUFSIZE, tmp_fp) != NULL) {
                 fprintf(fp, "%d : %s",idx, buf);
@@ -397,4 +424,31 @@ int make_tmp_file(int token)
     close(tmp_fd);
     chdir(static_path);
     return 1;
+}
+
+//입력받은 구조체 포인터에 체크한 값을 돌려준다.
+void parse_file_info(struct p2p_file *file_info, int find_idx, FILE *stream){
+    int idx;
+    char user_name[20];
+    char ip[40];
+    int port;
+    char file_name[50];
+        while(fscanf(stream, "%d : %s %s %d %s", &idx, user_name, ip, &port, file_name) > 0){
+        if(find_idx == idx)
+        {
+            break;
+        }
+        else
+        {
+            continue;
+        }
+        
+    }
+    file_info->idx = idx;
+    file_info->port = port;
+    strcpy(file_info->user_name, user_name);
+    strcpy(file_info->ip, ip);
+    strcpy(file_info->file_name, file_name);
+
+    fclose(stream);
 }

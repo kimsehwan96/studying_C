@@ -27,6 +27,7 @@
 #define USER1_FTP_PORT 4141 //FTP를 위한 포트 번호
 #define USER2_FTP_PORT 4142 //FTP를 위한 포트 번호
 
+
 // 유저의 인증로직을 위한 함수.
 unsigned int authenticate(int fd, char *id, char *pw)
 {
@@ -95,7 +96,8 @@ void send_file(FILE *fp, int sockfd)
     char data[BUFSIZE] = {0};
     int cnt = 0;
     while (fgets(data, BUFSIZE, fp) != NULL)
-    {   cnt++;
+    {
+        cnt++;
         if (send(sockfd, data, BUFSIZE, 0) == -1)
         {
             perror("[-]Error in sending file.");
@@ -110,10 +112,8 @@ void send_file(FILE *fp, int sockfd)
     printf("%d : %s \n", cnt, data);
     //보안에 취약점이 있지만 그냥 쓰자.
     send(sockfd, data, BUFSIZE, 0);
-    return ;
-} 
-
-
+    return;
+}
 
 void write_file(int sockfd, char *store_name)
 {
@@ -125,10 +125,11 @@ void write_file(int sockfd, char *store_name)
     fp = fopen(store_name, "w+");
     printf("will write file as %s \n", store_name);
     while (1)
-    {   cnt ++;
+    {
+        cnt++;
         n = read(sockfd, buffer, BUFSIZE);
         if (n <= 0)
-        {   
+        {
             break;
             return;
         }
@@ -149,31 +150,34 @@ void write_file_to_fd(int sockfd, int fd)
     int cmp_num;
 
     fp = fdopen(fd, "w");
-    if(fp==NULL){
+    if (fp == NULL)
+    {
         perror("open");
     }
-    
+
     while (1)
-    {   
-        cnt ++;
+    {
+        cnt++;
         n = recv(sockfd, buffer, BUFSIZE, 0); //마지막에 EOF를 던져주지 않으면 블로킹 당함.
-        if (n <= 0) 
-        {   //EOF -> 소켓이 끊어지면 전달된다 (n = 0)
+        if (n <= 0)
+        { //EOF -> 소켓이 끊어지면 전달된다 (n = 0)
             // n < 0 -> recv 에러.
             break;
             return;
         }
         cmp_num = strncmp(buffer, "DATSD", 5);
-        if (cmp_num == 0) {
+        if (cmp_num == 0)
+        {
             printf("this is strcmp : %d \n", cmp_num);
             printf("file recv done!\n");
             break;
             return;
         }
-        else {
+        else
+        {
             printf("this is strcmp : %d \n", cmp_num);
         }
-        printf("%d : %s <----- recv \n",cnt, buffer);
+        printf("%d : %s <----- recv \n", cnt, buffer);
         fprintf(fp, "%s", buffer);
         bzero(buffer, BUFSIZE);
     }
@@ -193,7 +197,8 @@ void print_recv_file(int sockfd)
             break;
             return;
         }
-        if ((strcmp(buffer, "DATSD")) == 0) {
+        if ((strcmp(buffer, "DATSD")) == 0)
+        {
             printf("file recv done!\n");
             break;
             return;

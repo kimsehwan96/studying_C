@@ -12,7 +12,7 @@
 // we will make a file with name file_list.lst for server side use.
 //with arguments username & ip address
 
-void mklistf(const char *username, const char *ipinfo)
+void mklistf(const char *username, const char *ipinfo, int portnum)
 {
     FILE *fp;
     char *cwd = (char *)malloc(sizeof(char) * 1024);
@@ -22,6 +22,7 @@ void mklistf(const char *username, const char *ipinfo)
 
     //파일 내용을 채울 임시 버퍼
     char buf[100];
+    char portnumc[10];
     //파일 정보 구조체
     struct stat info;
     getcwd(cwd, 1024);
@@ -44,6 +45,9 @@ void mklistf(const char *username, const char *ipinfo)
             strcat(buf, username); // buf -> user1
             strcat(buf, " "); // buf -> user1 
             strcat(buf, ipinfo); // buf -> user1 192.168.0.1
+            strcat(buf, " "); //
+            sprintf(portnumc, "%d", portnum);
+            strcat(buf, portnumc); 
             strcat(buf, " "); //
             strcat(buf, entry->d_name);//user1 192.168.0.1 fileName
             strcat(buf, "\n");
