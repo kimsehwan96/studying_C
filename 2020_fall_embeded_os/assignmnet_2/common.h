@@ -108,7 +108,7 @@ void send_file(FILE *fp, int sockfd)
     }
     cnt++;
     bzero(data, BUFSIZE);
-    strncpy(data, "DATSD", 5); //DATSD는 전송 완료되었음을 명시하기 위해서 사용
+    strncpy(data, "DATSD\0", 6); //DATSD는 전송 완료되었음을 명시하기 위해서 사용
     printf("%d : %s \n", cnt, data);
     //보안에 취약점이 있지만 그냥 쓰자.
     send(sockfd, data, BUFSIZE, 0);
@@ -142,7 +142,7 @@ void write_file(int sockfd, char *store_name)
 }
 
 void write_file_to_fd(int sockfd, int fd)
-{
+{   sleep(2);
     int n;
     FILE *fp;
     char buffer[BUFSIZE];
@@ -154,7 +154,6 @@ void write_file_to_fd(int sockfd, int fd)
     {
         perror("open");
     }
-
     while (1)
     {
         cnt++;

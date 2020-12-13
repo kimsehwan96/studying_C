@@ -17,7 +17,7 @@
 #include "list_func.h" //내부 파일 리스트를 생성하는 함수
 #include "my_ip.h"     //ip check 함수
 
-#define SERV_IP "127.0.0.1"
+#define SERV_IP "220.149.128.100"
 #define SERV_PORT 4140
 #define INIT_STATE 0
 #define AFTER_STATE 1
@@ -61,6 +61,7 @@ int main(void)
     int rcv_byte, file_size;
     int token = 0;
     int req_file_idx;
+    char my_ip[BUFSIZE];
     unsigned int sin_size;
     struct sockaddr_in dest_addr;  //서버의 어드레스
     struct sockaddr_in my_addr;    //클라이언트가 p2p 서버로 동작하기 위한 addr
@@ -114,7 +115,8 @@ int main(void)
     if (token == 1)
     { //유저 1 로그인 성공
         printf("login success user%d\n", token);
-        mklistf("user1", "127.0.0.1", USER1_FTP_PORT); //뒤에 인자(ip address)는 my_ip 헤더를 이용할 것.
+        myIp(my_ip);
+        mklistf("user1", my_ip, USER1_FTP_PORT); //뒤에 인자(ip address)는 my_ip 헤더를 이용할 것.
         strcpy(file_name, "user1_file_list.lst");
         if ((fd = open("user1_file_list.lst", O_RDWR)) < 0)
         {
@@ -131,7 +133,8 @@ int main(void)
     else if (token == 2)
     {
         printf("login success user%d\n", token);
-        mklistf("user2", "127.0.0.1", USER2_FTP_PORT); //뒤에 인자(ip address)는 my_ip 헤더를 이용할 것.
+        myIp(my_ip);
+        mklistf("user2", my_ip, USER2_FTP_PORT); //뒤에 인자(ip address)는 my_ip 헤더를 이용할 것.
         strcpy(file_name, "user2_file_list.lst");
         if ((fd = open("user2_file_list.lst", O_RDWR)) < 0)
         {
@@ -156,7 +159,7 @@ int main(void)
     //child process..p2p Listen mode.
     char *p2p_ip_address = (char *)malloc(512);
     // my_ip(my_ip_address); //이 클라이언트 코드가 돌아가는 ip주소 실제 배포시 사용
-    strcpy(p2p_ip_address, "127.0.0.1");
+    strcpy(p2p_ip_address, my_ip);
     if (token == USER1_LOGIN)
     {
         p2p_fd = setup_socket(USER1_FTP_PORT); //소켓 생성
